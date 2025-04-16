@@ -8,14 +8,15 @@ export const AppContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
 
-  const value = { navigate, user, setUser, isSeller, setIsSeller }
+  const value = { navigate, user, setUser, isSeller, setIsSeller };
 
-  return <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useAppContext = () => {
-  return useContext(AppContext);
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error("useAppContext must be used within an AppContextProvider");
+  }
+  return context;
 };
