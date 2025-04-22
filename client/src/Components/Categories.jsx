@@ -16,13 +16,13 @@ const Categories = () => {
             style={{ backgroundColor: category.bgColor }}
             onClick={() => {
               navigate(`/products/${category.path.toLocaleLowerCase()}`);
-              window.scrollTo(0, 0); 
+              window.scrollTo(0, 0);
             }}
           >
             <img
               src={category.image}
-              alt={category.text} 
-              className="group-hover:scale-105 transition max-w-28" 
+              alt={category.text}
+              className="group-hover:scale-105 transition max-w-28"
             />
             <p className="text-sm font-medium">{category.text}</p>
           </div>
