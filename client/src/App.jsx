@@ -2,26 +2,41 @@ import React from "react";
 import Navbar from "./Components/Navbar";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Home from "./Pages/Home";
-import { Toaster } from "react-hot-toast";
 import Footer from "./Components/Footer";
+import { Toaster } from "react-hot-toast";
+import { useAppContext } from "./Context/AppContext";
+import Login from "./Components/Login";
 
 const App = () => {
+  // Determine if the current path is a seller-related page
   const isSellerPath = useLocation().pathname.includes("/seller");
+
+  // Access context for the login modal
+  const { showUserLogin } = useAppContext();
 
   return (
     <div>
-      {isSellerPath ? null : <Navbar />}
+      {/* Conditionally Render Navbar */}
+      {!isSellerPath && <Navbar />}
 
-      <Toaster/>
+      {/* Display Login Modal */}
+      {showUserLogin && <Login />}
 
+      {/* Toast Notifications */}
+      <Toaster />
+
+      {/* Main Page Content */}
       <div
-        className={`${isSellerPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`}
+        className={`${isSellerPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`} // Responsive padding for non-seller pages
       >
         <Routes>
           <Route path="/" element={<Home />} />
+          {/* Add Additional Routes Here */}
         </Routes>
       </div>
-      {!isSellerPath && <Footer/> }
+
+      {/* Conditionally Render Footer */}
+      {!isSellerPath && <Footer />}
     </div>
   );
 };
