@@ -20,9 +20,30 @@ const Navbar = () => {
       </NavLink>
       {/* Desktop Menu */}
       <div className="hidden sm:flex items-center gap-8">
-        <NavLink to="/">Home</NavLink>
-        <NavLink to="/products">All Products</NavLink>
-        <NavLink to="/contact">Contact</NavLink>
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            isActive ? "text-primary" : "text-gray-600"
+          }
+        >
+          Home
+        </NavLink>
+        <NavLink
+          to="/products"
+          className={({ isActive }) =>
+            isActive ? "text-primary" : "text-gray-600"
+          }
+        >
+          All Products
+        </NavLink>
+        <NavLink
+          to="/contact"
+          className={({ isActive }) =>
+            isActive ? "text-primary" : "text-gray-600"
+          }
+        >
+          Contact
+        </NavLink>
 
         <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-300 px-3 rounded-full">
           <input
