@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { useAppContext } from "./Context/AppContext";
 import Login from "./Components/Login";
 import AllProducts from "./Components/AllProducts";
+import Noresults from "./Components/Noresults";
 
 const App = () => {
   // Determine if the current path is a seller-related page
@@ -33,6 +34,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<AllProducts />} />
+          <Route path="*" element={<Noresults/>} />
           {/* Add Additional Routes Here */}
         </Routes>
       </div>
