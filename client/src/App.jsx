@@ -8,6 +8,7 @@ import { useAppContext } from "./Context/AppContext";
 import Login from "./Components/Login";
 import AllProducts from "./Components/AllProducts";
 import Noresults from "./Components/Noresults";
+import ProductCategory from "./Components/ProductCategory";
 
 const App = () => {
   // Determine if the current path is a seller-related page
@@ -34,6 +35,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<AllProducts />} />
+          <Route path="/products/:category" element={<ProductCategory />} />
           <Route path="*" element={<Noresults/>} />
           {/* Add Additional Routes Here */}
         </Routes>
