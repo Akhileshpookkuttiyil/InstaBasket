@@ -45,7 +45,7 @@ const Navbar = () => {
         <NavLink
           to="/"
           className={({ isActive }) =>
-            isActive ? "text-primary-dull" : "text-gray-600"
+            isActive ? "text-primary" : "text-gray-600"
           }
           onClick={() => setsearchQuery("")}
         >
@@ -54,7 +54,7 @@ const Navbar = () => {
         <NavLink
           to="/products"
           className={({ isActive }) =>
-            isActive ? "text-primary-dull" : "text-gray-600"
+            isActive ? "text-primary" : "text-gray-600"
           }
           onClick={() => setsearchQuery("")}
         >
@@ -63,7 +63,7 @@ const Navbar = () => {
         <NavLink
           to="/contact"
           className={({ isActive }) =>
-            isActive ? "text-primary-dull" : "text-gray-600"
+            isActive ? "text-primary" : "text-gray-600"
           }
           onClick={() => setsearchQuery("")}
         >
