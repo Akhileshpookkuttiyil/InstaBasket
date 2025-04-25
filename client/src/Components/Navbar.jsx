@@ -1,64 +1,105 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { useAppContext } from "../Context/AppContext";
 
 const Navbar = () => {
   const [open, setOpen] = React.useState(false);
-  const { user, setUser, setshowUserLogin, navigate } = useAppContext();
+  const {
+    user,
+    setUser,
+    setshowUserLogin,
+    navigate,
+    searchQuery,
+    setsearchQuery,
+  } = useAppContext();
 
   const logout = async () => {
-    setUser(null);
-    navigate("/");
+    const confirmLogout = window.confirm("Are you sure you want to log out?");
+    if (confirmLogout) {
+      setUser(null);
+      navigate("/");
+    }
   };
+
+  useEffect(() => {
+    if (searchQuery.length > 0) {
+      navigate("/products");
+    }
+  }, [searchQuery]);
 
   return (
     <nav className="flex items-center justify-between px-2 md:px-8 lg:px-12 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all">
-      <NavLink to="/" onClick={() => setOpen(false)}>
-        {/* Logo */}
+      <NavLink
+        to="/"
+        onClick={() => {
+          setOpen(false);
+          setsearchQuery(""); // Clear search query
+        }}
+      >
         <img className="h-10" src={assets.logo} alt="logo" />
       </NavLink>
+
       {/* Desktop Menu */}
       <div className="hidden sm:flex items-center gap-8">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            isActive ? "text-primary" : "text-gray-600"
+            isActive ? "text-primary-dull" : "text-gray-600"
           }
+          onClick={() => setsearchQuery("")}
         >
           Home
         </NavLink>
         <NavLink
           to="/products"
           className={({ isActive }) =>
-            isActive ? "text-primary" : "text-gray-600"
+            isActive ? "text-primary-dull" : "text-gray-600"
           }
+          onClick={() => setsearchQuery("")}
         >
           All Products
         </NavLink>
         <NavLink
           to="/contact"
           className={({ isActive }) =>
-            isActive ? "text-primary" : "text-gray-600"
+            isActive ? "text-primary-dull" : "text-gray-600"
           }
+          onClick={() => setsearchQuery("")}
         >
           Contact
         </NavLink>
 
+        {/* Search Bar */}
         <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-300 px-3 rounded-full">
           <input
+            aria-label="Search for products"
+            value={searchQuery} // Controlled input
+            onChange={(e) => setsearchQuery(e.target.value)} // Update the state on input change
             className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500"
             type="text"
             placeholder="Search products"
           />
-          <img
-            src={assets.search_icon}
-            alt="search icon"
-            className="w-4 h-4"
-          ></img>
+          {searchQuery.length > 0 ? (
+            <button
+              aria-label="Clear search"
+              onClick={() => setsearchQuery("")} // Clear search query
+              className="text-sm text-gray-500 hover:text-primary" // Styling for the close button
+            >
+              ✕ {/* Close button icon or text */}
+            </button>
+          ) : (
+            <img
+              src={assets.search_icon}
+              alt="search icon"
+              className="w-4 h-4 cursor-pointer"
+            />
+          )}
         </div>
 
-        <div
+        {/* Cart */}
+        <button
+          aria-label="Open cart"
           onClick={() => navigate("/cart")}
           className="relative cursor-pointer"
         >
@@ -66,12 +107,13 @@ const Navbar = () => {
             src={assets.nav_cart_icon}
             alt="cart"
             className="w-6 opacity-80"
-          ></img>
-          <button className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
+          />
+          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
             3
-          </button>
-        </div>
+          </span>
+        </button>
 
+        {/* Login/Logout */}
         {!user ? (
           <button
             onClick={() => setshowUserLogin(true)}
@@ -104,22 +146,18 @@ const Navbar = () => {
         )}
       </div>
 
+      {/* Mobile Menu Toggle */}
       <button
-        onClick={() => (open ? setOpen(false) : setOpen(true))}
+        onClick={() => setOpen(!open)}
         aria-label="Menu"
         className="sm:hidden"
       >
-        {/* Menu Icon SVG */}
         <img src={assets.menu_icon} alt="menu icon" />
       </button>
 
       {/* Mobile Menu */}
       {open && (
-        <div
-          className={`${
-            open ? "flex" : "hidden"
-          } absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden`}
-        >
+        <div className="absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden">
           <NavLink to="/" onClick={() => setOpen(false)}>
             Home
           </NavLink>
@@ -131,7 +169,7 @@ const Navbar = () => {
               My Orders
             </NavLink>
           )}
-          <NavLink to="contact" onClick={() => setOpen(false)}>
+          <NavLink to="/contact" onClick={() => setOpen(false)}>
             Contact
           </NavLink>
           {!user ? (
