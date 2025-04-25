@@ -6,8 +6,10 @@ import toast from "react-hot-toast";
 export const AppContext = createContext();
 
 export const AppContextProvider = ({ children }) => {
-  const currency = import.meta.env.VITE_CURRENCY;
+  const currency = import.meta.env.VITE_CURRENCY; // App currency from environment
   const navigate = useNavigate();
+
+  // State variables
   const [user, setUser] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
   const [showUserLogin, setshowUserLogin] = useState(false);
@@ -15,16 +17,16 @@ export const AppContextProvider = ({ children }) => {
   const [cartItems, setcartItems] = useState({});
   const [searchQuery, setsearchQuery] = useState("");
 
-  
-  
+  // Fetch dummy products
   const fetchProducts = async () => {
     try {
-      setProducts(dummyProducts);
+      setProducts(dummyProducts); // Replace with API logic if needed
     } catch (error) {
       console.error("Error fetching products:", error);
     }
   };
 
+  // Add item to cart
   const addToCart = (itemId) => {
     setcartItems((prevCart) => {
       let cartData = { ...prevCart };
@@ -37,6 +39,7 @@ export const AppContextProvider = ({ children }) => {
     });
   };
 
+  // Update item quantity in cart
   const updateCartItem = (itemId, quantity) => {
     setcartItems((prevCart) => {
       let cartData = { ...prevCart };
@@ -49,6 +52,7 @@ export const AppContextProvider = ({ children }) => {
     });
   };
 
+  // Remove item from cart
   const removeFromCart = (itemId) => {
     setcartItems((prevCart) => {
       let cartData = { ...prevCart };
@@ -66,10 +70,33 @@ export const AppContextProvider = ({ children }) => {
     });
   };
 
+  // Get total item count in cart
+  const getCartCount = () => {
+    let totalCount = 0;
+    for (const item in cartItems) {
+      totalCount += cartItems[item];
+    }
+    return totalCount;
+  };
+
+  // Calculate total price of items in the cart
+  const getCartAmount = () => {
+    let totalAmount = 0;
+    for (const item in cartItems) {
+      const product = products.find((product) => product._id === item);
+      if (product) {
+        totalAmount += product.offerPrice * cartItems[item];
+      }
+    }
+    return Math.floor(totalAmount * 100) / 100; // Round to 2 decimal places
+  };
+
+  // Load products on component mount
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // Shared context value
   const value = {
     navigate,
     user,
@@ -86,6 +113,8 @@ export const AppContextProvider = ({ children }) => {
     cartItems,
     searchQuery,
     setsearchQuery,
+    getCartAmount,
+    getCartCount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
