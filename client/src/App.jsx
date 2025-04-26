@@ -12,6 +12,7 @@ import ProductCategory from "./Components/ProductCategory";
 import ProductDetails from "./Pages/ProductDetails";
 import Cart from "./Pages/Cart";
 import AddAdress from "./Pages/AddAdress";
+import MyOrders from "./Pages/MyOrders";
 
 const App = () => {
   // Determine if the current path is a seller-related page
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="/products/:category/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/add-address" element={<AddAdress />} />
+          <Route path="/my-orders" element={<MyOrders />} />
           <Route path="*" element={<Noresults />} />
           {/* Add Additional Routes Here */}
         </Routes>

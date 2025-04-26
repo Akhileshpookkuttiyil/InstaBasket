@@ -126,7 +126,7 @@ const Navbar = () => {
         {!user ? (
           <button
             onClick={() => setshowUserLogin(true)}
-            className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary transition text-white rounded-full"
+            className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full"
           >
             Login
           </button>
@@ -139,7 +139,7 @@ const Navbar = () => {
             />
             <ul
               role="menu"
-              className="hidden group-hover:block absolute top-12 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-30 rounded-md text-sm z-40"
+              className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-30 rounded-md text-sm z-40 flex-col"
             >
               <li
                 role="menuitem"
