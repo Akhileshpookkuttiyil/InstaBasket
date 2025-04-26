@@ -3,14 +3,20 @@ import { assets } from "../assets/assets";
 import { useAppContext } from "../Context/AppContext";
 
 const ProductCard = ({ product }) => {
-  const {navigate} = useAppContext();
+  const { navigate } = useAppContext();
   const { currency, addToCart, removeFromCart, cartItems } = useAppContext();
   if (!product) return null; // Prevent errors if product is undefined
 
   const itemQuantity = cartItems?.[product._id] || 0; // Avoid undefined errors
 
   return (
-    <div onClick={()=> {navigate(`/products/${product.category.toLowerCase()}/${product._id}`); scrollTo({ top: 0, behavior: "smooth" }) }} className="border border-gray-500/20 rounded-md bg-white w-[200px] max-w-[220px] mx-auto px-3 py-2">
+    <div
+      onClick={() => {
+        navigate(`/products/${product.category.toLowerCase()}/${product._id}`);
+        scrollTo({ top: 0, behavior: "smooth" });
+      }}
+      className="border border-gray-500/20 rounded-md bg-white w-[200px] max-w-[220px] mx-auto px-3 py-2"
+    >
       <div className="group cursor-pointer flex items-center justify-center px-2">
         <img
           className="group-hover:scale-105 transition max-w-26 md:max-w-36"
@@ -31,7 +37,7 @@ const ProductCard = ({ product }) => {
                 key={i}
                 className="md:w-3.5 w-3"
                 src={i < 4 ? assets.star_icon : assets.star_dull_icon}
-                alt=""
+                alt="rating"
               />
             ))}
           <p>({4})</p>
