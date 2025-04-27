@@ -13,13 +13,14 @@ import ProductDetails from "./Pages/ProductDetails";
 import Cart from "./Pages/Cart";
 import AddAdress from "./Pages/AddAdress";
 import MyOrders from "./Pages/MyOrders";
+import SellerLogin from "./Components/Seller/SellerLogin";
 
 const App = () => {
   // Determine if the current path is a seller-related page
   const isSellerPath = useLocation().pathname.includes("/seller");
 
   // Access context for the login modal
-  const { showUserLogin } = useAppContext();
+  const { showUserLogin, isSeller } = useAppContext();
 
   return (
     <div>
@@ -46,6 +47,10 @@ const App = () => {
           <Route path="/my-orders" element={<MyOrders />} />
           <Route path="*" element={<Noresults />} />
           {/* Add Additional Routes Here */}
+          <Route
+            path="/seller"
+            element={isSeller ? null : <SellerLogin />}
+          ></Route>
         </Routes>
       </div>
 
