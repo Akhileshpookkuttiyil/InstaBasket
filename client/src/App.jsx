@@ -15,6 +15,9 @@ import AddAdress from "./Pages/AddAdress";
 import MyOrders from "./Pages/MyOrders";
 import SellerLogin from "./Components/Seller/SellerLogin";
 import SellerLayout from "./Pages/Seller/SellerLayout";
+import AddProducts from "./Pages/Seller/AddProducts";
+import ProductsList from "./Pages/Seller/ProductsList";
+import Orders from "./Pages/Seller/Orders";
 
 const App = () => {
   // Determine if the current path is a seller-related page
@@ -51,7 +54,11 @@ const App = () => {
           <Route
             path="/seller"
             element={isSeller ? <SellerLayout /> : <SellerLogin />}
-          ></Route>
+          >
+            <Route index element={isSeller ? <AddProducts /> : null} />
+            <Route path="product-list" element={<ProductsList />} />
+            <Route path="orders" element={<Orders />} />
+          </Route>
         </Routes>
       </div>
 

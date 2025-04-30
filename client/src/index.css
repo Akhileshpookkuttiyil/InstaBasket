@@ -11,4 +11,7 @@
   --color-primary-dull: #86c019; /* Muted variant for secondary use */
 }
 
+.no-scrollbar::-webkit-scrollbar{
+  display: none;
+}
 
