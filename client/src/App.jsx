@@ -14,6 +14,7 @@ import Cart from "./Pages/Cart";
 import AddAdress from "./Pages/AddAdress";
 import MyOrders from "./Pages/MyOrders";
 import SellerLogin from "./Components/Seller/SellerLogin";
+import SellerLayout from "./Pages/Seller/SellerLayout";
 
 const App = () => {
   // Determine if the current path is a seller-related page
@@ -23,7 +24,7 @@ const App = () => {
   const { showUserLogin, isSeller } = useAppContext();
 
   return (
-    <div>
+    <div className="text-default min-h-screen text-gray-700 bg-white">
       {/* Conditionally Render Navbar */}
       {!isSellerPath && <Navbar />}
 
@@ -49,7 +50,7 @@ const App = () => {
           {/* Add Additional Routes Here */}
           <Route
             path="/seller"
-            element={isSeller ? null : <SellerLogin />}
+            element={isSeller ? <SellerLayout /> : <SellerLogin />}
           ></Route>
         </Routes>
       </div>
