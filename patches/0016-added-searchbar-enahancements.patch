@@ -1,0 +1,302 @@
+From 32b616ea5f9d4226ec7f5c8c9b61562321ac43e7 Mon Sep 17 00:00:00 2001
+From: akhilesh <akhileshpookkuttiyil@gmail.com>
+Date: Fri, 25 Apr 2025 08:17:52 +0530
+Subject: [PATCH 16/25] added searchbar enahancements
+
+---
+ client/src/Components/AllProducts.jsx | 50 +++++++++------
+ client/src/Components/Navbar.jsx      | 92 +++++++++++++++++++--------
+ client/src/Components/Noresults.jsx   | 16 ++---
+ 3 files changed, 105 insertions(+), 53 deletions(-)
+
+diff --git a/client/src/Components/AllProducts.jsx b/client/src/Components/AllProducts.jsx
+index 8ae7091..22502d6 100644
+--- a/client/src/Components/AllProducts.jsx
++++ b/client/src/Components/AllProducts.jsx
+@@ -5,24 +5,34 @@ import ProductCard from "./ProductCard";
+ const AllProducts = () => {
+   const { products, searchQuery } = useAppContext();
+   const [filteredProducts, setFilteredProducts] = useState([]);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState(null);
+ 
+   useEffect(() => {
+-    if (searchQuery.length > 0) {
+-      setFilteredProducts(
+-        products.filter(
+-          (product) =>
+-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+-            product.description
+-              .toLowerCase()
+-              .includes(searchQuery.toLowerCase())
+-        )
+-      );
+-    } else {
+-      setFilteredProducts(products);
++    try {
++      if (searchQuery.length > 0) {
++        setFilteredProducts(
++          products.filter((product) =>
++            product.name.toLowerCase().includes(searchQuery.toLowerCase())
++          )
++        );
++      } else {
++        setFilteredProducts(products);
++      }
++      setLoading(false);
++    } catch {
++      setError("Failed to load products.");
++      setLoading(false);
+     }
+   }, [products, searchQuery]);
+ 
+-  return (
++  if (error) {
++    return <p className="text-center text-red-500 mt-10">{error}</p>;
++  }
++
++  return loading ? (
++    <div className="text-center mt-10">Loading products...</div>
++  ) : (
+     <div className="mt-16 flex flex-col">
+       <div className="flex flex-col items-end w-max">
+         <p className="text-2xl font-medium uppercase">All Products</p>
+@@ -30,11 +40,15 @@ const AllProducts = () => {
+       </div>
+ 
+       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-6 lg:grid-cols-5 mt-6">
+-        {filteredProducts
+-          .filter((product) => product.inStock)
+-          .map((product, index) => (
+-            <ProductCard key={index} product={product} />
+-          ))}
++        {filteredProducts.filter((product) => product.inStock).length === 0 ? (
++          <p className="text-center text-gray-500 mt-10">No products found.</p>
++        ) : (
++          filteredProducts
++            .filter((product) => product.inStock)
++            .map((product, index) => (
++              <ProductCard key={index} product={product} />
++            ))
++        )}
+       </div>
+     </div>
+   );
+diff --git a/client/src/Components/Navbar.jsx b/client/src/Components/Navbar.jsx
+index ca31fe5..ed89d8c 100644
+--- a/client/src/Components/Navbar.jsx
++++ b/client/src/Components/Navbar.jsx
+@@ -1,64 +1,105 @@
+-import React from "react";
++import React, { useEffect } from "react";
+ import { NavLink } from "react-router-dom";
+ import { assets } from "../assets/assets";
+ import { useAppContext } from "../Context/AppContext";
+ 
+ const Navbar = () => {
+   const [open, setOpen] = React.useState(false);
+-  const { user, setUser, setshowUserLogin, navigate } = useAppContext();
++  const {
++    user,
++    setUser,
++    setshowUserLogin,
++    navigate,
++    searchQuery,
++    setsearchQuery,
++  } = useAppContext();
+ 
+   const logout = async () => {
+-    setUser(null);
+-    navigate("/");
++    const confirmLogout = window.confirm("Are you sure you want to log out?");
++    if (confirmLogout) {
++      setUser(null);
++      navigate("/");
++    }
+   };
+ 
++  useEffect(() => {
++    if (searchQuery.length > 0) {
++      navigate("/products");
++    }
++  }, [searchQuery]);
++
+   return (
+     <nav className="flex items-center justify-between px-2 md:px-8 lg:px-12 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all">
+-      <NavLink to="/" onClick={() => setOpen(false)}>
+-        {/* Logo */}
++      <NavLink
++        to="/"
++        onClick={() => {
++          setOpen(false);
++          setsearchQuery(""); // Clear search query
++        }}
++      >
+         <img className="h-10" src={assets.logo} alt="logo" />
+       </NavLink>
++
+       {/* Desktop Menu */}
+       <div className="hidden sm:flex items-center gap-8">
+         <NavLink
+           to="/"
+           className={({ isActive }) =>
+-            isActive ? "text-primary" : "text-gray-600"
++            isActive ? "text-primary-dull" : "text-gray-600"
+           }
++          onClick={() => setsearchQuery("")}
+         >
+           Home
+         </NavLink>
+         <NavLink
+           to="/products"
+           className={({ isActive }) =>
+-            isActive ? "text-primary" : "text-gray-600"
++            isActive ? "text-primary-dull" : "text-gray-600"
+           }
++          onClick={() => setsearchQuery("")}
+         >
+           All Products
+         </NavLink>
+         <NavLink
+           to="/contact"
+           className={({ isActive }) =>
+-            isActive ? "text-primary" : "text-gray-600"
++            isActive ? "text-primary-dull" : "text-gray-600"
+           }
++          onClick={() => setsearchQuery("")}
+         >
+           Contact
+         </NavLink>
+ 
++        {/* Search Bar */}
+         <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-300 px-3 rounded-full">
+           <input
++            aria-label="Search for products"
++            value={searchQuery} // Controlled input
++            onChange={(e) => setsearchQuery(e.target.value)} // Update the state on input change
+             className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500"
+             type="text"
+             placeholder="Search products"
+           />
+-          <img
+-            src={assets.search_icon}
+-            alt="search icon"
+-            className="w-4 h-4"
+-          ></img>
++          {searchQuery.length > 0 ? (
++            <button
++              aria-label="Clear search"
++              onClick={() => setsearchQuery("")} // Clear search query
++              className="text-sm text-gray-500 hover:text-primary" // Styling for the close button
++            >
++              ✕ {/* Close button icon or text */}
++            </button>
++          ) : (
++            <img
++              src={assets.search_icon}
++              alt="search icon"
++              className="w-4 h-4 cursor-pointer"
++            />
++          )}
+         </div>
+ 
+-        <div
++        {/* Cart */}
++        <button
++          aria-label="Open cart"
+           onClick={() => navigate("/cart")}
+           className="relative cursor-pointer"
+         >
+@@ -66,12 +107,13 @@ const Navbar = () => {
+             src={assets.nav_cart_icon}
+             alt="cart"
+             className="w-6 opacity-80"
+-          ></img>
+-          <button className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
++          />
++          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
+             3
+-          </button>
+-        </div>
++          </span>
++        </button>
+ 
++        {/* Login/Logout */}
+         {!user ? (
+           <button
+             onClick={() => setshowUserLogin(true)}
+@@ -104,22 +146,18 @@ const Navbar = () => {
+         )}
+       </div>
+ 
++      {/* Mobile Menu Toggle */}
+       <button
+-        onClick={() => (open ? setOpen(false) : setOpen(true))}
++        onClick={() => setOpen(!open)}
+         aria-label="Menu"
+         className="sm:hidden"
+       >
+-        {/* Menu Icon SVG */}
+         <img src={assets.menu_icon} alt="menu icon" />
+       </button>
+ 
+       {/* Mobile Menu */}
+       {open && (
+-        <div
+-          className={`${
+-            open ? "flex" : "hidden"
+-          } absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden`}
+-        >
++        <div className="absolute top-[60px] left-0 w-full bg-white shadow-md py-4 flex-col items-start gap-2 px-5 text-sm md:hidden">
+           <NavLink to="/" onClick={() => setOpen(false)}>
+             Home
+           </NavLink>
+@@ -131,7 +169,7 @@ const Navbar = () => {
+               My Orders
+             </NavLink>
+           )}
+-          <NavLink to="contact" onClick={() => setOpen(false)}>
++          <NavLink to="/contact" onClick={() => setOpen(false)}>
+             Contact
+           </NavLink>
+           {!user ? (
+diff --git a/client/src/Components/Noresults.jsx b/client/src/Components/Noresults.jsx
+index 5575cfa..c254a59 100644
+--- a/client/src/Components/Noresults.jsx
++++ b/client/src/Components/Noresults.jsx
+@@ -2,24 +2,24 @@ import React from "react";
+ 
+ const noResults = () => {
+   return (
+-    <div class="flex flex-col items-center justify-center text-sm max-md:px-4 mt-14">
+-      <h1 class="text-8xl md:text-9xl font-bold text-primary">404</h1>
+-      <div class="h-1 w-16 rounded bg-primary my-5 md:my-7"></div>
+-      <p class="text-2xl md:text-3xl font-bold text-gray-800">Page Not Found</p>
+-      <p class="text-sm md:text-base mt-4 text-gray-500 max-w-md text-center">
++    <div className="flex flex-col items-center justify-center text-sm max-md:px-4 mt-14">
++      <h1 className="text-8xl md:text-9xl font-bold text-primary">404</h1>
++      <div className="h-1 w-16 rounded bg-primary my-5 md:my-7"></div>
++      <p className="text-2xl md:text-3xl font-bold text-gray-800">Page Not Found</p>
++      <p className="text-sm md:text-base mt-4 text-gray-500 max-w-md text-center">
+         The page you are looking for might have been removed, had its name
+         changed, or is temporarily unavailable.
+       </p>
+-      <div class="flex items-center gap-4 mt-6">
++      <div className="flex items-center gap-4 mt-6">
+         <a
+           href="/"
+-          class=" border border-primary px-7 py-2.5 text-gray-800 rounded-md active:scale-95 transition-all"
++          className=" border border-primary px-7 py-2.5 text-gray-800 rounded-md active:scale-95 transition-all"
+         >
+           Return Home
+         </a>
+         <a
+           href="/"
+-          class="border border-primary px-7 py-2.5 text-gray-800 rounded-md active:scale-95 transition-all"
++          className="border border-primary px-7 py-2.5 text-gray-800 rounded-md active:scale-95 transition-all"
+         >
+           Contact support
+         </a>
+-- 
+2.46.1.windows.1
+

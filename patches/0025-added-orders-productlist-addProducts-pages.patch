@@ -1,0 +1,504 @@
+From 4f73ac0937755052f7ae85f2c54a269c2c030795 Mon Sep 17 00:00:00 2001
+From: akhilesh <akhileshpookkuttiyil@gmail.com>
+Date: Wed, 30 Apr 2025 17:21:03 +0530
+Subject: [PATCH 25/25] added orders,productlist,addProducts pages
+
+---
+ client/src/App.jsx                       |   9 +-
+ client/src/Pages/Seller/AddProducts.jsx  | 174 ++++++++++++++++++++++-
+ client/src/Pages/Seller/Orders.jsx       |  88 +++++++++++-
+ client/src/Pages/Seller/ProductsList.jsx |  72 +++++++++-
+ client/src/Pages/Seller/SellerLayout.jsx |  49 ++++---
+ client/src/index.css                     |   3 +
+ 6 files changed, 363 insertions(+), 32 deletions(-)
+
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index 8c2c48b..a004454 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@ -15,6 +15,9 @@ import AddAdress from "./Pages/AddAdress";
+ import MyOrders from "./Pages/MyOrders";
+ import SellerLogin from "./Components/Seller/SellerLogin";
+ import SellerLayout from "./Pages/Seller/SellerLayout";
++import AddProducts from "./Pages/Seller/AddProducts";
++import ProductsList from "./Pages/Seller/ProductsList";
++import Orders from "./Pages/Seller/Orders";
+ 
+ const App = () => {
+   // Determine if the current path is a seller-related page
+@@ -51,7 +54,11 @@ const App = () => {
+           <Route
+             path="/seller"
+             element={isSeller ? <SellerLayout /> : <SellerLogin />}
+-          ></Route>
++          >
++            <Route index element={isSeller ? <AddProducts /> : null} />
++            <Route path="product-list" element={<ProductsList />} />
++            <Route path="orders" element={<Orders />} />
++          </Route>
+         </Routes>
+       </div>
+ 
+diff --git a/client/src/Pages/Seller/AddProducts.jsx b/client/src/Pages/Seller/AddProducts.jsx
+index c6e3f99..80e442d 100644
+--- a/client/src/Pages/Seller/AddProducts.jsx
++++ b/client/src/Pages/Seller/AddProducts.jsx
+@@ -1,9 +1,173 @@
+-import React from 'react'
++import React, { useState } from "react";
++import { assets, categories } from "../../assets/assets";
+ 
+ const AddProducts = () => {
++  const [files, setFiles] = useState([]);
++  const [formData, setFormData] = useState({
++    name: "",
++    description: "",
++    category: "",
++    price: "",
++    offerPrice: "",
++  });
++
++  const handleInputChange = (e) => {
++    const { id, value } = e.target;
++    setFormData((prev) => ({ ...prev, [id]: value }));
++  };
++
++  const handleFileChange = (index, file) => {
++    const updatedFiles = [...files];
++    updatedFiles[index] = file;
++    setFiles(updatedFiles);
++  };
++
++  const validateForm = () => {
++    if (formData.offerPrice > formData.price) {
++      alert("Offer price cannot be greater than product price.");
++      return false;
++    }
++    return true;
++  };
++
++  const onSubmitHandler = (event) => {
++    event.preventDefault();
++    if (validateForm()) {
++      console.log("Form submitted:", { ...formData, files });
++      // Add API call or further processing here
++    }
++  };
++
+   return (
+-    <div>AddProducts</div>
+-  )
+-}
++    <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll flex flex-col justify-between">
++      <form
++        onSubmit={onSubmitHandler}
++        className="md:p-10 p-4 space-y-5 max-w-lg"
++      >
++        {/* Product Image Upload */}
++        <div>
++          <p className="text-base font-medium">Product Image</p>
++          <div className="flex flex-wrap items-center gap-3 mt-2">
++            {Array(4)
++              .fill("")
++              .map((_, index) => (
++                <label key={index} htmlFor={`image${index}`}>
++                  <input
++                    type="file"
++                    id={`image${index}`}
++                    accept="image/*"
++                    hidden
++                    onChange={(e) => handleFileChange(index, e.target.files[0])}
++                  />
++                  <img
++                    className="max-w-24 cursor-pointer"
++                    src={
++                      files[index]
++                        ? URL.createObjectURL(files[index])
++                        : assets.upload_area
++                    }
++                    alt="uploadArea"
++                    width={100}
++                    height={100}
++                  />
++                </label>
++              ))}
++          </div>
++        </div>
++
++        {/* Product Name */}
++        <div className="flex flex-col gap-1 max-w-md">
++          <label className="text-base font-medium" htmlFor="name">
++            Product Name
++          </label>
++          <input
++            id="name"
++            type="text"
++            placeholder="Type here"
++            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
++            value={formData.name}
++            onChange={handleInputChange}
++            required
++          />
++        </div>
++
++        {/* Product Description */}
++        <div className="flex flex-col gap-1 max-w-md">
++          <label className="text-base font-medium" htmlFor="description">
++            Product Description
++          </label>
++          <textarea
++            id="description"
++            rows={4}
++            placeholder="Type here"
++            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40 resize-none"
++            value={formData.description}
++            onChange={handleInputChange}
++          ></textarea>
++        </div>
++
++        {/* Category Selection */}
++        <div className="w-full flex flex-col gap-1">
++          <label className="text-base font-medium" htmlFor="category">
++            Category
++          </label>
++          <select
++            id="category"
++            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
++            value={formData.category}
++            onChange={handleInputChange}
++          >
++            <option value="">Select Category</option>
++            {categories.map((category, index) => (
++              <option key={index} value={category.path}>
++                {category.path}
++              </option>
++            ))}
++          </select>
++        </div>
++
++        {/* Product Price and Offer Price */}
++        <div className="flex items-center gap-5 flex-wrap">
++          <div className="flex-1 flex flex-col gap-1 w-32">
++            <label className="text-base font-medium" htmlFor="price">
++              Product Price
++            </label>
++            <input
++              id="price"
++              type="number"
++              placeholder="0"
++              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
++              value={formData.price}
++              onChange={handleInputChange}
++              required
++            />
++          </div>
++          <div className="flex-1 flex flex-col gap-1 w-32">
++            <label className="text-base font-medium" htmlFor="offerPrice">
++              Offer Price
++            </label>
++            <input
++              id="offerPrice"
++              type="number"
++              placeholder="0"
++              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
++              value={formData.offerPrice}
++              onChange={handleInputChange}
++              required
++            />
++          </div>
++        </div>
++
++        {/* Submit Button */}
++        <button
++          type="submit"
++          className="px-8 py-2.5 bg-primary text-white font-medium rounded"
++        >
++          ADD
++        </button>
++      </form>
++    </div>
++  );
++};
+ 
+-export default AddProducts
+\ No newline at end of file
++export default AddProducts;
+diff --git a/client/src/Pages/Seller/Orders.jsx b/client/src/Pages/Seller/Orders.jsx
+index fef028d..5cc46c9 100644
+--- a/client/src/Pages/Seller/Orders.jsx
++++ b/client/src/Pages/Seller/Orders.jsx
+@@ -1,7 +1,91 @@
+-import React from "react";
++import React, { useEffect, useState } from "react";
++import { useAppContext } from "../../Context/AppContext";
++import { assets, dummyOrders } from "../../assets/assets";
+ 
+ const Orders = () => {
+-  return <div>Orders</div>;
++  const { currency } = useAppContext();
++  const [orders, setOrders] = useState([]);
++
++  // Fetch orders (dummy data in this case)
++  const fetchOrders = async () => {
++    try {
++      setOrders(dummyOrders);
++    } catch (error) {
++      console.error("Failed to fetch orders:", error);
++    }
++  };
++
++  useEffect(() => {
++    fetchOrders();
++  }, []);
++
++  return (
++    <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll">
++      <div className="md:p-10 p-4 space-y-4">
++        <h2 className="text-lg font-medium">Orders List</h2>
++
++        {/* Check for empty orders */}
++        {orders.length === 0 ? (
++          <p className="text-gray-500">No orders found.</p>
++        ) : (
++          orders.map((order, index) => (
++            <div
++              key={index}
++              className="flex flex-col md:items-center md:flex-row gap-5 justify-between p-5 max-w-4xl rounded-md border border-gray-300"
++            >
++              {/* Order Items */}
++              <div className="flex gap-5 max-w-80">
++                <img
++                  className="w-12 h-12 object-cover"
++                  src={assets.box_icon}
++                  alt="Order Box Icon"
++                  loading="lazy"
++                />
++                <div>
++                  {order.items.map((item, index) => (
++                    <div key={index} className="flex flex-col">
++                      <p className="font-medium">
++                        {item.product.name}{" "}
++                        <span className="text-primary">x {item.quantity}</span>
++                      </p>
++                    </div>
++                  ))}
++                </div>
++              </div>
++
++              {/* Customer Address */}
++              <div className="text-sm md:text-base text-black/60">
++                <p className="text-black/80">
++                  {order.address.firstName} {order.address.lastName}
++                </p>
++                <p>
++                  {order.address.street}, {order.address.city}
++                </p>
++                <p>
++                  {order.address.state}, {order.address.zipcode},{" "}
++                  {order.address.country}
++                </p>
++                <p>{order.address.phone}</p>
++              </div>
++
++              {/* Order Amount */}
++              <p className="font-medium text-lg my-auto">
++                {currency}
++                {order.amount}
++              </p>
++
++              {/* Order Metadata */}
++              <div className="flex flex-col text-sm md:text-base text-black/60">
++                <p>Method: {order.paymentType}</p>
++                <p>Date: {new Date(order.createdAt).toLocaleString()}</p>
++                <p>Payment: {order.isPaid ? "Paid" : "Pending"}</p>
++              </div>
++            </div>
++          ))
++        )}
++      </div>
++    </div>
++  );
+ };
+ 
+ export default Orders;
+diff --git a/client/src/Pages/Seller/ProductsList.jsx b/client/src/Pages/Seller/ProductsList.jsx
+index 3690a39..2dea32b 100644
+--- a/client/src/Pages/Seller/ProductsList.jsx
++++ b/client/src/Pages/Seller/ProductsList.jsx
+@@ -1,9 +1,71 @@
+-import React from 'react'
++import React from "react";
++import { useAppContext } from "../../Context/AppContext";
+ 
+ const ProductsList = () => {
++  const { products, currency } = useAppContext();
++
+   return (
+-    <div>ProductsList</div>
+-  )
+-}
++    <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll flex flex-col justify-between">
++      <div className="w-full md:p-10 p-4">
++        <h2 className="pb-4 text-lg font-medium">All Products</h2>
++        <div className="flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20">
++          <table className="md:table-auto table-fixed w-full">
++            <thead className="text-gray-900 text-sm text-left">
++              <tr>
++                <th className="px-4 py-3 font-semibold truncate">Product</th>
++                <th className="px-4 py-3 font-semibold truncate">Category</th>
++                <th className="px-4 py-3 font-semibold truncate hidden md:block">
++                  Selling Price
++                </th>
++                <th className="px-4 py-3 font-semibold truncate">In Stock</th>
++              </tr>
++            </thead>
++            <tbody className="text-sm text-gray-500">
++              {products.map((product) => (
++                <tr key={product._id} className="border-t border-gray-500/20">
++                  {/* Product Details */}
++                  <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
++                    <div className="border border-gray-300 rounded p-2">
++                      <img
++                        src={product.image[0]}
++                        alt={`Image of ${product.name}`}
++                        className="w-16"
++                        loading="lazy"
++                      />
++                    </div>
++                    <span className="truncate max-sm:hidden w-full">
++                      {product.name}
++                    </span>
++                  </td>
++                  
++                  {/* Category */}
++                  <td className="px-4 py-3">{product.category}</td>
++
++                  {/* Selling Price */}
++                  <td className="px-4 py-3 max-sm:hidden">
++                    {currency}
++                    {product.offerPrice}
++                  </td>
++
++                  {/* In Stock Toggle */}
++                  <td className="px-4 py-3">
++                    <label
++                      className="relative inline-flex items-center cursor-pointer gap-3"
++                      aria-label={`Toggle stock for ${product.name}`}
++                    >
++                      <input type="checkbox" className="sr-only peer" readOnly />
++                      <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200"></div>
++                      <span className="dot absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></span>
++                    </label>
++                  </td>
++                </tr>
++              ))}
++            </tbody>
++          </table>
++        </div>
++      </div>
++    </div>
++  );
++};
+ 
+-export default ProductsList
+\ No newline at end of file
++export default ProductsList;
+diff --git a/client/src/Pages/Seller/SellerLayout.jsx b/client/src/Pages/Seller/SellerLayout.jsx
+index b5a567a..69a17ad 100644
+--- a/client/src/Pages/Seller/SellerLayout.jsx
++++ b/client/src/Pages/Seller/SellerLayout.jsx
+@@ -16,13 +16,14 @@ const SellerLayout = () => {
+     { name: "Orders", path: "/seller/orders", icon: assets.order_icon },
+   ];
+ 
+-  const logout = async () => {
++  const handleLogout = () => {
+     setIsSeller(false);
+   };
+ 
+   return (
+     <>
+-      <div className="flex items-center justify-between px-4 md:px-8 border-b border-gray-300 py-3 bg-white">
++      {/* Header */}
++      <header className="flex items-center justify-between px-4 md:px-8 border-b border-gray-300 py-3 bg-white">
+         <Link to="/">
+           <img
+             src={assets.logo}
+@@ -33,35 +34,45 @@ const SellerLayout = () => {
+         <div className="flex items-center gap-5 text-gray-500">
+           <p>Hi! Admin</p>
+           <button
+-            onClick={logout}
++            onClick={handleLogout}
+             className="border rounded-full text-sm px-4 py-1"
++            aria-label="Logout from Seller Dashboard"
+           >
+             Logout
+           </button>
+         </div>
+-      </div>
++      </header>
++
++      {/* Sidebar & Content */}
+       <div className="flex">
+-        <div className="md:w-64 w-16 border-r h-[550px] text-base border-gray-300 pt-4 flex flex-col transition-all duration-300">
+-          {sidebarLinks.map((item) => (
++        {/* Sidebar */}
++        <nav className="md:w-64 w-16 border-r h-[95vh] border-gray-300 pt-4 flex flex-col">
++          {sidebarLinks.map(({ name, path, icon }) => (
+             <NavLink
+-              to={item.path}
+-              key={item.name}
+-              end={item.path === "/seller"}
+-              className={({isActive}) => `flex items-center py-3 px-4 gap-3 
+-                        ${
+-                          isActive
+-                            ? "border-r-4 md:border-r-[6px] bg-primary/10 border-primary text-primary"
+-                            : "hover:bg-gray-100/90 border-white"
+-                        }`}
++              to={path}
++              key={name}
++              end={path === "/seller"}
++              className={({ isActive }) =>
++                `flex items-center py-3 px-4 gap-3 ${
++                  isActive
++                    ? "border-r-4 md:border-r-[6px] bg-primary/10 border-primary text-primary"
++                    : "hover:bg-gray-100/90"
++                }`
++              }
+             >
+-              <img src={item.icon} alt="icon" className="w-7 h-7" />
+-              <p className="md:block hidden text-center">{item.name}</p>
++              <img src={icon} alt={`${name} icon`} className="w-7 h-7" />
++              <p className="md:block hidden">{name}</p>
+             </NavLink>
+           ))}
+-        </div>
+-        <Outlet />
++        </nav>
++
++        {/* Main Content */}
++        <main className="flex-1">
++          <Outlet />
++        </main>
+       </div>
+     </>
+   );
+ };
++
+ export default SellerLayout;
+diff --git a/client/src/index.css b/client/src/index.css
+index cc21ee9..2a7ce77 100644
+--- a/client/src/index.css
++++ b/client/src/index.css
+@@ -11,4 +11,7 @@
+   --color-primary-dull: #86c019; /* Muted variant for secondary use */
+ }
+ 
++.no-scrollbar::-webkit-scrollbar{
++  display: none;
++}
+ 
+-- 
+2.46.1.windows.1
+

@@ -1,0 +1,186 @@
+From ff61b3b13231257d057ca7545c99556c90775a7a Mon Sep 17 00:00:00 2001
+From: akhilesh <akhileshpookkuttiyil@gmail.com>
+Date: Tue, 22 Apr 2025 20:58:54 +0530
+Subject: [PATCH 09/25] added toast and CRUD functions to cart
+
+---
+ client/src/App.jsx                          |  5 ++-
+ client/src/Components/Categories.jsx        |  6 +--
+ client/src/Components/MainBanner.module.css | 23 +++++-----
+ client/src/Context/AppContext.jsx           | 47 +++++++++++++++++++++
+ client/src/Pages/Home.jsx                   |  4 +-
+ 5 files changed, 67 insertions(+), 18 deletions(-)
+
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index 1a09130..4ac196a 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@ -2,7 +2,7 @@ import React from "react";
+ import Navbar from "./Components/Navbar";
+ import { Routes, Route, useLocation } from "react-router-dom";
+ import Home from "./Pages/Home";
+-
++import { Toaster } from "react-hot-toast";
+ 
+ const App = () => {
+   const isSellerPath = useLocation().pathname.includes("/seller");
+@@ -10,6 +10,9 @@ const App = () => {
+   return (
+     <div>
+       {isSellerPath ? null : <Navbar />}
++
++      <Toaster/>
++
+       <div
+         className={`${isSellerPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`}
+       >
+diff --git a/client/src/Components/Categories.jsx b/client/src/Components/Categories.jsx
+index fcc32be..a1dc54d 100644
+--- a/client/src/Components/Categories.jsx
++++ b/client/src/Components/Categories.jsx
+@@ -16,13 +16,13 @@ const Categories = () => {
+             style={{ backgroundColor: category.bgColor }}
+             onClick={() => {
+               navigate(`/products/${category.path.toLocaleLowerCase()}`);
+-              window.scrollTo(0, 0); 
++              window.scrollTo(0, 0);
+             }}
+           >
+             <img
+               src={category.image}
+-              alt={category.text} 
+-              className="group-hover:scale-105 transition max-w-28" 
++              alt={category.text}
++              className="group-hover:scale-105 transition max-w-28"
+             />
+             <p className="text-sm font-medium">{category.text}</p>
+           </div>
+diff --git a/client/src/Components/MainBanner.module.css b/client/src/Components/MainBanner.module.css
+index 8561465..20b8fbf 100644
+--- a/client/src/Components/MainBanner.module.css
++++ b/client/src/Components/MainBanner.module.css
+@@ -1,15 +1,14 @@
+ .fadeIn {
+-    animation: fadeIn 0.6s ease-in-out;
++  animation: fadeIn 0.6s ease-in-out;
++}
++
++@keyframes fadeIn {
++  from {
++    opacity: 0;
++    transform: translateY(10px);
+   }
+-  
+-  @keyframes fadeIn {
+-    from {
+-      opacity: 0;
+-      transform: translateY(10px);
+-    }
+-    to {
+-      opacity: 1;
+-      transform: translateY(0);
+-    }
++  to {
++    opacity: 1;
++    transform: translateY(0);
+   }
+-  
+\ No newline at end of file
++}
+diff --git a/client/src/Context/AppContext.jsx b/client/src/Context/AppContext.jsx
+index 7ea1ab2..1a68ca7 100644
+--- a/client/src/Context/AppContext.jsx
++++ b/client/src/Context/AppContext.jsx
+@@ -1,6 +1,7 @@
+ import { createContext, useState, useContext, useEffect } from "react";
+ import { useNavigate } from "react-router-dom";
+ import { dummyProducts } from "../assets/assets";
++import toast from "react-hot-toast";
+ 
+ export const AppContext = createContext();
+ 
+@@ -11,6 +12,7 @@ export const AppContextProvider = ({ children }) => {
+   const [isSeller, setIsSeller] = useState(false);
+   const [showUserLogin, setshowUserLogin] = useState(false);
+   const [products, setProducts] = useState([]);
++  const [cartItems, setcartItems] = useState({});
+ 
+   const fetchProducts = async () => {
+     try {
+@@ -20,6 +22,47 @@ export const AppContextProvider = ({ children }) => {
+     }
+   };
+ 
++  const addToCart = (itemId) => {
++    setcartItems((prevCart) => {
++      let cartData = { ...prevCart };
++      cartData[itemId] = (cartData[itemId] || 0) + 1;
++      return cartData;
++    });
++
++    toast.success("Item added to cart", {
++      style: { background: "#fff", color: "#000" },
++    });
++  };
++
++  const updateCartItem = (itemId, quantity) => {
++    setcartItems((prevCart) => {
++      let cartData = { ...prevCart };
++      cartData[itemId] = quantity;
++      return cartData;
++    });
++
++    toast.success("Item updated in cart", {
++      style: { background: "#fff", color: "#000" },
++    });
++  };
++
++  const removeFromCart = (itemId) => {
++    setcartItems((prevCart) => {
++      let cartData = { ...prevCart };
++      if (cartData[itemId]) {
++        cartData[itemId] -= 1;
++        if (cartData[itemId] === 0) {
++          delete cartData[itemId];
++        }
++
++        toast.success("Item removed from cart", {
++          style: { background: "#fff", color: "#000" },
++        });
++      }
++      return cartData;
++    });
++  };
++
+   useEffect(() => {
+     fetchProducts();
+   }, []);
+@@ -34,6 +77,10 @@ export const AppContextProvider = ({ children }) => {
+     setshowUserLogin,
+     products,
+     currency,
++    addToCart,
++    updateCartItem,
++    removeFromCart,
++    cartItems,
+   };
+ 
+   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+diff --git a/client/src/Pages/Home.jsx b/client/src/Pages/Home.jsx
+index 930f743..896525c 100644
+--- a/client/src/Pages/Home.jsx
++++ b/client/src/Pages/Home.jsx
+@@ -7,8 +7,8 @@ const Home = () => {
+   return (
+     <div className="mt-10">
+       <MainBanner />
+-      <Categories/>
+-      <BestSeller/>
++      <Categories />
++      <BestSeller />
+     </div>
+   );
+ };
+-- 
+2.46.1.windows.1
+

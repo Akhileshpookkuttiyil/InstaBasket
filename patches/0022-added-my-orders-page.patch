@@ -1,0 +1,169 @@
+From b278db48bb02b1136e51384911ff1388bf832f60 Mon Sep 17 00:00:00 2001
+From: akhilesh <akhileshpookkuttiyil@gmail.com>
+Date: Sat, 26 Apr 2025 21:23:12 +0530
+Subject: [PATCH 22/25] added my-orders page
+
+---
+ client/src/App.jsx               |   2 +
+ client/src/Components/Navbar.jsx |   4 +-
+ client/src/Pages/MyOrders.jsx    | 106 +++++++++++++++++++++++++++++++
+ 3 files changed, 110 insertions(+), 2 deletions(-)
+ create mode 100644 client/src/Pages/MyOrders.jsx
+
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index 64770f7..ccfb4f0 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@ -12,6 +12,7 @@ import ProductCategory from "./Components/ProductCategory";
+ import ProductDetails from "./Pages/ProductDetails";
+ import Cart from "./Pages/Cart";
+ import AddAdress from "./Pages/AddAdress";
++import MyOrders from "./Pages/MyOrders";
+ 
+ const App = () => {
+   // Determine if the current path is a seller-related page
+@@ -42,6 +43,7 @@ const App = () => {
+           <Route path="/products/:category/:id" element={<ProductDetails />} />
+           <Route path="/cart" element={<Cart />} />
+           <Route path="/add-address" element={<AddAdress />} />
++          <Route path="/my-orders" element={<MyOrders />} />
+           <Route path="*" element={<Noresults />} />
+           {/* Add Additional Routes Here */}
+         </Routes>
+diff --git a/client/src/Components/Navbar.jsx b/client/src/Components/Navbar.jsx
+index 0f8344a..16c28a3 100644
+--- a/client/src/Components/Navbar.jsx
++++ b/client/src/Components/Navbar.jsx
+@@ -126,7 +126,7 @@ const Navbar = () => {
+         {!user ? (
+           <button
+             onClick={() => setshowUserLogin(true)}
+-            className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary transition text-white rounded-full"
++            className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full"
+           >
+             Login
+           </button>
+@@ -139,7 +139,7 @@ const Navbar = () => {
+             />
+             <ul
+               role="menu"
+-              className="hidden group-hover:block absolute top-12 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-30 rounded-md text-sm z-40"
++              className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-30 rounded-md text-sm z-40 flex-col"
+             >
+               <li
+                 role="menuitem"
+diff --git a/client/src/Pages/MyOrders.jsx b/client/src/Pages/MyOrders.jsx
+new file mode 100644
+index 0000000..aec5487
+--- /dev/null
++++ b/client/src/Pages/MyOrders.jsx
+@@ -0,0 +1,106 @@
++import React, { useEffect, useState } from "react";
++import { useAppContext } from "../Context/AppContext";
++import { dummyOrders } from "../assets/assets";
++
++const MyOrders = () => {
++  const [MyOrders, setMyOrders] = useState([]);
++  const { currency } = useAppContext();
++
++  const fetchMyOrders = async () => {
++    setMyOrders(dummyOrders);
++  };
++
++  useEffect(() => {
++    fetchMyOrders();
++  }, []);
++
++  if (!MyOrders.length) {
++    return (
++      <div className="text-center mt-20">
++        <p className="text-2xl font-medium mb-4">No orders found 🛒</p>
++      </div>
++    );
++  }
++
++  return (
++    <div className="mt-16 pb-16">
++      <div className="flex flex-col items-end w-max mb-8">
++        <p className="text-2xl font-medium uppercase">My Orders</p>
++        <div className="w-16 h-0.5 bg-primary rounded-full"></div>
++      </div>
++
++      {MyOrders.map((order) => (
++        <div
++          className="border border-gray-200 rounded-lg p-4 mb-10 py-5 max-w-4xl"
++          key={order._id}
++        >
++          <p className="flex justify-between md:items-center text-gray-400 md:font-medium max-md:flex-col">
++            <span>OrderId: {order._id}</span>
++            <span>Payment: {order.paymentType}</span>
++            <span>
++              Total Amount: {currency}
++              {order.amount}
++            </span>
++          </p>
++
++          {order.items?.map((item) => (
++            <div
++              key={item.product._id}
++              className={`relative bg-white text-gray-500/70 ${
++                order.items.length !== order.items.indexOf(item) + 1
++                  ? "border-b border-gray-300"
++                  : ""
++              } flex flex-col md:flex-row md:items-center justify-between py-5 gap-4 p-4 md:gap-16 w-full max-w-4xl`}
++            >
++              <div className="flex items-center mb-4 md:mb-0">
++                <div className="bg-primary/10 p-4 rounded-lg">
++                  <img
++                    src={item.product.image[0]}
++                    alt={item.product.name}
++                    className="w-16 h-16"
++                  />
++                </div>
++                <div className="ml-4">
++                  <h2 className="text-xl font-medium text-gray-800">
++                    {item.product.name}
++                  </h2>
++                  <p className="text-gray-500/60 text-sm">
++                    {item.product.category}
++                  </p>
++                </div>
++              </div>
++              <div className="flex flex-col justify-center md:ml-8 mb-4 md:mb-0">
++                <p>Quantity: {item.quantity || "1"}</p>
++                <p
++                  className={`font-medium ${
++                    order.status === "Completed"
++                      ? "text-green-500"
++                      : order.status === "Pending"
++                      ? "text-yellow-500"
++                      : "text-red-500"
++                  }`}
++                >
++                  Status: {order.status}
++                </p>
++                <p>
++                  Date:{" "}
++                  {new Date(order.createdAt).toLocaleDateString("en-US", {
++                    year: "numeric",
++                    month: "short",
++                    day: "numeric",
++                  })}
++                </p>
++              </div>
++              <p className="text-primary text-lg font-medium">
++                Amount: {currency}
++                {item.product.offerPrice * item.quantity}
++              </p>
++            </div>
++          ))}
++        </div>
++      ))}
++    </div>
++  );
++};
++
++export default MyOrders;
+-- 
+2.46.1.windows.1
+
