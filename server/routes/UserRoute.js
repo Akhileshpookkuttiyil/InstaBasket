@@ -1,0 +1,37 @@
+// userRoute.js
+// Routes related to user authentication (register, login, logout, auth check)
+
+import express from "express";
+import {
+  checkAuth,
+  loginUser,
+  logoutUser,
+  registerUser,
+} from "../controllers/userController.js";
+import authUser from "../middilewares/authUser.js";
+
+const userRouter = express.Router();
+
+// @route   POST /register
+// @desc    Register a new user
+userRouter.post("/register", registerUser);
+
+// @route   POST /login
+// @desc    Log in an existing user
+userRouter.post("/login", loginUser);
+
+// @route   POST /logout
+// @desc    Log out the user
+userRouter.post("/logout", authUser, logoutUser);
+
+// @route   GET /auth
+// @desc    Check if the user is authenticated
+// @access  Private
+userRouter.get("/auth", authUser, checkAuth);
+
+userRouter.get("/test", (req, res) => {
+  res.send("User router is working!");
+});
+
+
+export default userRouter;
