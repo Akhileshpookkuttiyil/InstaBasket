@@ -8,7 +8,7 @@ import {
   logoutUser,
   registerUser,
 } from "../controllers/userController.js";
-import authUser from "../middilewares/authUser.js";
+import authUser from "../middlewares/authUser.js";
 
 const userRouter = express.Router();
 
@@ -32,6 +32,5 @@ userRouter.get("/auth", authUser, checkAuth);
 userRouter.get("/test", (req, res) => {
   res.send("User router is working!");
 });
-
 
 export default userRouter;

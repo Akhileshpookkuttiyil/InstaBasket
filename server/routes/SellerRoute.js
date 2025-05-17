@@ -4,7 +4,7 @@ import {
   sellerLogin,
   sellerLogout,
 } from "../controllers/sellerController.js";
-import authSeller from "../middilewares/authSeller.js";
+import authSeller from "../middlewares/authSeller.js";
 
 const sellerRouter = express.Router();
 

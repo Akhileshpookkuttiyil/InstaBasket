@@ -8,6 +8,9 @@ import userRouter from "./routes/UserRoute.js";
 import sellerRouter from "./routes/SellerRoute.js";
 import cloudinaryConfig from "./configs/cloudinary.js";
 import productRouter from "./routes/ProductRoute.js";
+import cartRouter from "./routes/cartRoute.js";
+import addressRouter from "./routes/addressRoute.js";
+import orderRouter from "./routes/orderRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,8 +29,11 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/user", userRouter);
-app.use("/api/seller", sellerRouter); // Assuming you have a sellerRouter
-app.use("/api/products", productRouter); // Assuming you have a productRouter
+app.use("/api/seller", sellerRouter);
+app.use("/api/products", productRouter);
+app.use("/api/cart", cartRouter);
+app.use("/api/address", addressRouter);
+app.use("/api/order", orderRouter);
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
