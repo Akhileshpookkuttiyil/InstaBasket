@@ -6,11 +6,14 @@ import connectDB from "./configs/db.js"; // Corrected import path
 import "dotenv/config"; // Load environment variables from .env file
 import userRouter from "./routes/UserRoute.js";
 import sellerRouter from "./routes/SellerRoute.js";
+import cloudinaryConfig from "./configs/cloudinary.js";
+import productRouter from "./routes/ProductRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 await connectDB();
+await cloudinaryConfig(); // Initialize Cloudinary configuration
 
 const allowOrigin = ["http://localhost:5173"];
 
@@ -24,6 +27,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/user", userRouter);
 app.use("/api/seller", sellerRouter); // Assuming you have a sellerRouter
+app.use("/api/products", productRouter); // Assuming you have a productRouter
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
