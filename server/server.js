@@ -5,6 +5,7 @@ import cors from "cors";
 import connectDB from "./configs/db.js"; // Corrected import path
 import "dotenv/config"; // Load environment variables from .env file
 import userRouter from "./routes/UserRoute.js";
+import sellerRouter from "./routes/SellerRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/user", userRouter);
+app.use("/api/seller", sellerRouter); // Assuming you have a sellerRouter
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
