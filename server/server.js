@@ -11,6 +11,7 @@ import productRouter from "./routes/ProductRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoutes.js";
+import { stripeWebhook } from "./controllers/webhookController.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,8 @@ await connectDB();
 await cloudinaryConfig(); // Initialize Cloudinary configuration
 
 const allowOrigin = ["http://localhost:5173"];
+
+app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json());
 app.use(cookieParser());

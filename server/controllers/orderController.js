@@ -5,7 +5,7 @@ import stripe from "stripe";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const stripeInstance = stripe(STRIPE_SECRET_KEY);
-const TAX_RATE = 0.02; // 2% tax
+const TAX_RATE = 0.02;
 
 export const placeOrderStripe = async (req, res) => {
   try {
@@ -77,7 +77,6 @@ export const placeOrderStripe = async (req, res) => {
     const tax = subtotal * TAX_RATE;
     const totalAmount = Math.round(subtotal + tax);
 
-    // Create order (unpaid)
     const order = await Order.create({
       userId,
       items: productData.map((p) => ({
@@ -90,7 +89,6 @@ export const placeOrderStripe = async (req, res) => {
       isPaid: false,
     });
 
-    // ✅ Create Stripe Customer with billing address (required by Indian export law)
     const customer = await stripeInstance.customers.create({
       name: user.name || "Unnamed",
       email: user.email,
@@ -103,7 +101,6 @@ export const placeOrderStripe = async (req, res) => {
       },
     });
 
-    // Prepare line items
     const line_items = productData.map((item) => ({
       price_data: {
         currency: "inr",
@@ -113,7 +110,6 @@ export const placeOrderStripe = async (req, res) => {
       quantity: item.quantity,
     }));
 
-    // ✅ Create Stripe Checkout Session
     const session = await stripeInstance.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -124,11 +120,7 @@ export const placeOrderStripe = async (req, res) => {
       cancel_url: `${origin}/cart`,
       metadata: {
         orderId: order._id.toString(),
-        userId,
-        paymentMethod,
-        totalAmount: totalAmount.toString(),
-        items: JSON.stringify(productData),
-        shippingAddress: JSON.stringify(shippingAddress),
+        userId: userId.toString(),
       },
     });
 
@@ -138,7 +130,7 @@ export const placeOrderStripe = async (req, res) => {
       url: session.url,
     });
   } catch (error) {
-    console.error("Stripe order error:", error.message, error.stack);
+    console.error("Stripe order error:", error.message);
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error.",
@@ -147,7 +139,6 @@ export const placeOrderStripe = async (req, res) => {
 };
 
 // Place order with Cash on Delivery (COD) : POST /api/order/placeordercod
-
 export const placeOrderCOD = async (req, res) => {
   try {
     const { userId, items, shippingAddress } = req.body;
