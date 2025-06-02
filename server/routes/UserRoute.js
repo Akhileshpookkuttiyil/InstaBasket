@@ -22,7 +22,7 @@ userRouter.post("/login", loginUser);
 
 // @route   POST /logout
 // @desc    Log out the user
-userRouter.post("/logout", authUser, logoutUser);
+userRouter.get("/logout", authUser, logoutUser);
 
 // @route   GET /auth
 // @desc    Check if the user is authenticated

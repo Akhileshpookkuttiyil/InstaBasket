@@ -13,8 +13,13 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     category: {
-      type: [String], // Array for multiple categories (e.g., 'fruits', 'dairy')
+      type: String, // Array for multiple categories (e.g., 'fruits', 'dairy')
       required: true,
+    },
+    description: {
+      type: [String],
+      required: true,
+      trim: true, // Trim leading/trailing spaces
     },
     price: {
       type: Number,
@@ -36,6 +41,10 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: [0, "Stock count cannot be negative"], // Ensure non-negative stock count
     },
+    inStock: {
+      type: Boolean,
+      default: true, // Default to true, indicating the product is in stock
+    },
     expiryDate: {
       type: Date, // Expiry date for perishable products (optional)
       required: false,
@@ -45,11 +54,6 @@ const productSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
-
-// Add a virtual field `inStock` to check if the product is in stock
-productSchema.virtual("inStock").get(function () {
-  return this.countInStock > 0;
-});
 
 // Virtual field to check if the product is expired (for perishable goods)
 productSchema.virtual("isExpired").get(function () {

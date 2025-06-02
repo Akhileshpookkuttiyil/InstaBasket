@@ -1,108 +1,335 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import User from "../models/User.js";
+import stripe from "stripe";
 
-// Place order COD : POST /api/order/cod
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const stripeInstance = stripe(STRIPE_SECRET_KEY);
+const TAX_RATE = 0.02; // 2% tax
+
+export const placeOrderStripe = async (req, res) => {
+  try {
+    const { userId, items, shippingAddress, paymentMethod } = req.body;
+    const { origin } = req.headers;
+
+    if (
+      !userId ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !shippingAddress ||
+      !paymentMethod
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing or invalid required fields (userId, items, shippingAddress, paymentMethod).",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    const productData = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+      if (
+        !item.productId ||
+        typeof item.quantity !== "number" ||
+        item.quantity <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid item structure: each item must have productId and positive quantity.",
+        });
+      }
+
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product with ID ${item.productId} not found.`,
+        });
+      }
+
+      if (item.quantity > product.stock) {
+        return res.status(400).json({
+          success: false,
+          message: `Product "${product.name}" exceeds available stock (${product.stock}).`,
+        });
+      }
+
+      productData.push({
+        productId: product._id,
+        name: product.name,
+        price: product.offerPrice,
+        quantity: item.quantity,
+      });
+
+      subtotal += product.offerPrice * item.quantity;
+    }
+
+    const tax = subtotal * TAX_RATE;
+    const totalAmount = Math.round(subtotal + tax);
+
+    // Create order (unpaid)
+    const order = await Order.create({
+      userId,
+      items: productData.map((p) => ({
+        product: p.productId,
+        quantity: p.quantity,
+      })),
+      shippingAddress,
+      paymentMethod,
+      totalAmount,
+      isPaid: false,
+    });
+
+    // ✅ Create Stripe Customer with billing address (required by Indian export law)
+    const customer = await stripeInstance.customers.create({
+      name: user.name || "Unnamed",
+      email: user.email,
+      address: {
+        line1: shippingAddress.street,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        postal_code: shippingAddress.postalCode,
+        country: "IN",
+      },
+    });
+
+    // Prepare line items
+    const line_items = productData.map((item) => ({
+      price_data: {
+        currency: "inr",
+        product_data: { name: item.name },
+        unit_amount: Math.round(item.price * (1 + TAX_RATE) * 100),
+      },
+      quantity: item.quantity,
+    }));
+
+    // ✅ Create Stripe Checkout Session
+    const session = await stripeInstance.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer: customer.id,
+      line_items,
+      billing_address_collection: "auto",
+      success_url: `${origin}/loader?next=my-orders`,
+      cancel_url: `${origin}/cart`,
+      metadata: {
+        orderId: order._id.toString(),
+        userId,
+        paymentMethod,
+        totalAmount: totalAmount.toString(),
+        items: JSON.stringify(productData),
+        shippingAddress: JSON.stringify(shippingAddress),
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Stripe session created successfully.",
+      url: session.url,
+    });
+  } catch (error) {
+    console.error("Stripe order error:", error.message, error.stack);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error.",
+    });
+  }
+};
+
+// Place order with Cash on Delivery (COD) : POST /api/order/placeordercod
+
 export const placeOrderCOD = async (req, res) => {
   try {
     const { userId, items, shippingAddress } = req.body;
 
-    // Validate the input data
-    if (!items || !shippingAddress) {
+    if (
+      !userId ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !shippingAddress
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields",
+        message:
+          "Missing or invalid required fields (userId, items, shippingAddress).",
       });
     }
 
-    // Initialize total amount
-    let amount = 0;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
 
-    // Calculate total amount using async loop
+    let totalAmount = 0;
+    const formattedItems = [];
+
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      if (
+        !item.productId ||
+        typeof item.quantity !== "number" ||
+        item.quantity <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid item structure: each item must have productId and positive quantity.",
+        });
+      }
+
+      const product = await Product.findById(item.productId);
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `Product with ID ${item.product} not found`,
+          message: `Product with ID ${item.productId} not found.`,
         });
       }
-      // Add product price * quantity to the total amount
-      amount += product.offerPrice * item.quantity;
+
+      if (item.quantity > product.stock) {
+        return res.status(400).json({
+          success: false,
+          message: `Product "${product.name}" exceeds available stock (${product.stock}).`,
+        });
+      }
+
+      totalAmount += product.offerPrice * item.quantity;
+      formattedItems.push({ product: product._id, quantity: item.quantity });
     }
 
-    // Add tax charge (2%) and round to 2 decimal places
-    amount += parseFloat((amount * 0.02).toFixed(2));
+    // Add 2% tax and round
+    totalAmount = Math.round(totalAmount * (1 + TAX_RATE));
 
-    // Create the order
-    const newOrder = await Order.create({
+    const order = await Order.create({
       userId,
-      items,
+      items: formattedItems,
       shippingAddress,
-      amount,
-      paymentMethod: "COD", // Cash on Delivery
-      isPaid: false, // Payment is not done yet
-      orderStatus: "order placed", // Initial status
+      totalAmount,
+      paymentMethod: "COD",
+      isPaid: false,
+      orderStatus: "order placed",
     });
 
-    // Send success response
     return res.status(201).json({
       success: true,
-      message: "Order placed successfully",
-      orderId: newOrder._id, // Return orderId instead of the whole order object
+      message: "Order placed successfully.",
+      orderId: order._id,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: error.message });
+    console.error("COD order error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error.",
+    });
   }
 };
 
 // Get orders by userId : GET /api/order/getuserorders
 export const getUserOrders = async (req, res) => {
-  try {
-    const userId = req.user._id; // Get userId from the authenticated user in the JWT or session
+  console.log("Fetching user orders...");
 
-    // Validate userId
-    if (!userId) {
-      return res.status(400).json({
+  try {
+    // Check if req.user and req.user.id exist
+    if (!req.user || !req.user.id) {
+      console.warn("Unauthorized access attempt - no user ID found.");
+      return res.status(401).json({
         success: false,
-        message: "User ID is missing or invalid",
+        message: "Unauthorized: User not authenticated.",
       });
     }
 
-    // Fetch orders for the user
+    const userId = req.user.id;
+    console.log("User ID:", userId);
+
+    // Fetch orders using a filtered query
     const orders = await Order.find({
       userId,
       $or: [{ paymentMethod: "COD" }, { isPaid: true }],
     })
-      .populate("items.product address") // Populate product and address references
-      .sort({ createdAt: -1 });
+      .populate("items.product") // Populate product info
+      .sort({ createdAt: -1 })
+      .lean(); // Return plain JavaScript objects
+
+    if (!orders || orders.length === 0) {
+      console.info(`No orders found for user: ${userId}`);
+      return res.status(200).json({
+        success: true,
+        message: "No orders found.",
+        orders: [],
+      });
+    }
+
+    // Sanitize or transform orders if needed
+    const safeOrders = orders.map((order) => ({
+      id: order._id,
+      totalAmount: order.totalAmount,
+      orderStatus: order.orderStatus,
+      paymentMethod: order.paymentMethod,
+      isPaid: order.isPaid,
+      createdAt: order.createdAt,
+      items: (order.items || []).map((item) => ({
+        quantity: item.quantity,
+        product: item.product
+          ? {
+              id: item.product._id,
+              name: item.product.name,
+              image: item.product.image,
+              category: item.product.category,
+              offerPrice: item.product.offerPrice,
+            }
+          : null,
+      })),
+    }));
+
+    console.log(`Fetched ${safeOrders.length} orders for user ${userId}`);
 
     return res.status(200).json({
       success: true,
-      orders, // Return the orders found
+      orders: safeOrders,
     });
   } catch (error) {
-    console.log(error.message);
-    return res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching orders.",
+      error: error.message,
+    });
   }
 };
 
-// Get all orders : GET /api/order/getallorders
+// GET /api/order/getallorders
 export const getAllOrders = async (req, res) => {
+  console.log("Fetching all orders...");
+
   try {
-    // Fetch all orders (for admin or superuser)
     const orders = await Order.find({
       $or: [{ paymentMethod: "COD" }, { isPaid: true }],
     })
-      .populate("items.product address") // Populate product and address references
-      .sort({ createdAt: -1 });
+      .populate("items.product")
+      .populate("shippingAddress")
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
-      orders, // Return all orders found
+      orders,
     });
   } catch (error) {
-    console.log(error.message);
-    return res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching orders:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders.",
+      error: error.message,
+    });
   }
 };

@@ -12,7 +12,12 @@ const ProductCard = ({ product }) => {
   return (
     <div
       onClick={() => {
-        navigate(`/products/${product.category.toLowerCase()}/${product._id}`);
+        navigate(
+          `/products/${String(product?.category || "unknown").toLowerCase()}/${
+            product._id
+          }`
+        );
+
         scrollTo({ top: 0, behavior: "smooth" });
       }}
       className="border border-gray-500/20 rounded-md bg-white w-[200px] max-w-[220px] mx-auto px-3 py-2"

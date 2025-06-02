@@ -1,17 +1,47 @@
 import React, { useEffect, useState } from "react";
 import { useAppContext } from "../../Context/AppContext";
-import { assets, dummyOrders } from "../../assets/assets";
+import { assets } from "../../assets/assets";
+import toast from "react-hot-toast";
+
+// Map currency symbols to ISO currency codes
+const symbolToCodeMap = {
+  "₹": "INR",
+  $: "USD", // could be used for USD or others
+  "€": "EUR",
+  "£": "GBP",
+  "¥": "JPY",
+  "₽": "RUB",
+  "₩": "KRW",
+  "₺": "TRY",
+  R$: "BRL",
+  C$: "CAD",
+  A$: "AUD",
+  "₦": "NGN",
+  "د.إ": "AED",
+  "﷼": "SAR",
+  S$: "SGD",
+  NZ$: "NZD",
+};
 
 const Orders = () => {
-  const { currency } = useAppContext();
+  const { currency: currencySymbol, axios } = useAppContext(); // Still using the symbol from .env
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch orders (dummy data in this case)
   const fetchOrders = async () => {
+    setLoading(true);
     try {
-      setOrders(dummyOrders);
+      const { data } = await axios.get("/api/order/seller");
+      if (data.success) {
+        console.log("Fetched orders:", data.orders);
+        setOrders(data.orders);
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -19,21 +49,35 @@ const Orders = () => {
     fetchOrders();
   }, []);
 
+  // Format currency using code derived from symbol
+  const formatCurrency = (amount) => {
+    const code = symbolToCodeMap[currencySymbol] || "USD"; // fallback to USD if unknown
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: code,
+      }).format(amount);
+    } catch (e) {
+      console.error("Invalid currency formatting:", e);
+      return `${currencySymbol}${amount}`;
+    }
+  };
+
   return (
     <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll">
       <div className="md:p-10 p-4 space-y-4">
         <h2 className="text-lg font-medium">Orders List</h2>
 
-        {/* Check for empty orders */}
-        {orders.length === 0 ? (
+        {loading ? (
+          <p className="text-gray-500">Loading orders...</p>
+        ) : orders.length === 0 ? (
           <p className="text-gray-500">No orders found.</p>
         ) : (
-          orders.map((order, index) => (
+          orders.map((order) => (
             <div
-              key={index}
+              key={order._id}
               className="flex flex-col md:items-center md:flex-row gap-5 justify-between p-5 max-w-4xl rounded-md border border-gray-300"
             >
-              {/* Order Items */}
               <div className="flex gap-5 max-w-80">
                 <img
                   className="w-12 h-12 object-cover"
@@ -42,8 +86,8 @@ const Orders = () => {
                   loading="lazy"
                 />
                 <div>
-                  {order.items.map((item, index) => (
-                    <div key={index} className="flex flex-col">
+                  {order.items.map((item, idx) => (
+                    <div key={idx} className="flex flex-col">
                       <p className="font-medium">
                         {item.product.name}{" "}
                         <span className="text-primary">x {item.quantity}</span>
@@ -53,31 +97,34 @@ const Orders = () => {
                 </div>
               </div>
 
-              {/* Customer Address */}
               <div className="text-sm md:text-base text-black/60">
                 <p className="text-black/80">
-                  {order.address.firstName} {order.address.lastName}
+                  {order.shippingAddress.firstName}{" "}
+                  {order.shippingAddress.lastName}
                 </p>
                 <p>
-                  {order.address.street}, {order.address.city}
+                  {order.shippingAddress.street}, {order.shippingAddress.city}
                 </p>
                 <p>
-                  {order.address.state}, {order.address.zipcode},{" "}
-                  {order.address.country}
+                  {order.shippingAddress.state}, {order.shippingAddress.zipcode}
+                  , {order.shippingAddress.country}
                 </p>
-                <p>{order.address.phone}</p>
+                <p>{order.shippingAddress.phone}</p>
               </div>
 
-              {/* Order Amount */}
               <p className="font-medium text-lg my-auto">
-                {currency}
-                {order.amount}
+                {formatCurrency(order.totalAmount)}
               </p>
 
-              {/* Order Metadata */}
               <div className="flex flex-col text-sm md:text-base text-black/60">
-                <p>Method: {order.paymentType}</p>
-                <p>Date: {new Date(order.createdAt).toLocaleString()}</p>
+                <p>Method: {order.paymentMethod}</p>
+                <p>
+                  Date:{" "}
+                  {new Intl.DateTimeFormat("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(order.createdAt))}
+                </p>
                 <p>Payment: {order.isPaid ? "Paid" : "Pending"}</p>
               </div>
             </div>

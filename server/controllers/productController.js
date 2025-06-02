@@ -37,7 +37,7 @@ export const addProduct = async (req, res) => {
     // Use Product.create() to create and save the product in one step
     const newProduct = await Product.create({
       ...productData, // Spread the product data (e.g., name, price, etc.)
-      images: imagesUrls, // Save the image URLs
+      image: imagesUrls.map((img) => img.url), // Save the image URLs
     });
 
     // Send the response back to the client with the saved product
@@ -55,6 +55,7 @@ export const addProduct = async (req, res) => {
 // get all products : GET /api/products
 export const getAllProducts = async (req, res) => {
   try {
+    
     const products = await Product.find();
     res.status(200).json({
       success: true,
@@ -91,14 +92,6 @@ export const getSingleProduct = async (req, res) => {
 export const changeStock = async (req, res) => {
   try {
     const { id, inStock } = req.body;
-
-    // Validate that `inStock` is a number
-    if (typeof inStock !== "number") {
-      return res.status(400).json({
-        success: false,
-        message: "'inStock' must be a number",
-      });
-    }
 
     // Find the product by ID and update the stock
     const product = await Product.findByIdAndUpdate(

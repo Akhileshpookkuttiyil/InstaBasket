@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { assets } from "../assets/assets";
 import { useAppContext } from "../Context/AppContext";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu
@@ -13,12 +14,23 @@ const Navbar = () => {
     searchQuery,
     setsearchQuery,
     getCartCount,
+    axios,
   } = useAppContext();
 
   const handleLogout = async () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-      setUser(null); // Clear user data
-      navigate("/"); // Redirect to home page
+    try {
+      if (window.confirm("Are you sure you want to log out?")) {
+        const { data } = await axios.get("/api/user/logout");
+        if (data.success) {
+          toast.success(data.message);
+          setUser(null);
+          navigate("/");
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 

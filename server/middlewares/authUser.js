@@ -20,7 +20,7 @@ const authUser = (req, res, next) => {
       });
     }
 
-    req.body.userId = decoded.id;
+    req.user = { id: decoded.id };
     next();
   } catch (error) {
     console.error("authUser error:", error.message);

@@ -43,7 +43,7 @@ const ProductDetails = () => {
       {/* Breadcrumb */}
       <p className="text-sm text-gray-500">
         <Link to="/">Home</Link> / <Link to="/products">Products</Link> /{" "}
-        <Link to={`/products/${product.category.toLowerCase()}`}>
+        <Link to={`/products/${String(product.category).toLowerCase()}`}>
           {product.category}
         </Link>{" "}
         / <span className="text-primary">{product.name}</span>
@@ -114,11 +114,12 @@ const ProductDetails = () => {
 
           {/* Description */}
           <p className="text-base font-medium mt-6">About Product:</p>
-          <ul className="list-disc ml-6 text-gray-600">
-            {product.description.map((desc) => (
-              <li key={desc}>{desc}</li> // Using description itself as a key
-            ))}
-          </ul>
+          {Array.isArray(product.description) &&
+          product.description.length > 0 ? (
+            product.description.map((desc) => <li key={desc}>{desc}</li>)
+          ) : (
+            <li className="text-gray-400">No description available.</li>
+          )}
 
           {/* Actions */}
           <div className="flex items-center gap-4 mt-10">

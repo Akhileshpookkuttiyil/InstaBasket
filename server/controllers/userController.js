@@ -42,12 +42,10 @@ export const registerUser = async (req, res) => {
     }
 
     if (password.length < 6) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Password must be at least 6 characters",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
     }
 
     const existingUser = await User.findOne({ email });
@@ -79,12 +77,10 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in registerUser:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error. Please try again later.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
   }
 };
 
@@ -121,21 +117,14 @@ export const loginUser = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "User logged in successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
+      user,
     });
   } catch (error) {
     console.error("Error in loginUser:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server error. Please try again later.",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -152,11 +141,10 @@ export const logoutUser = async (req, res) => {
   }
 };
 
-// Check Authentication
+// userController.js
 export const checkAuth = async (req, res) => {
   try {
-    const userId = req.body.userId; // Fixed: don't destructure
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(req.user.id).select("-password");
 
     if (!user) {
       return res
@@ -166,16 +154,12 @@ export const checkAuth = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      },
+      user,
     });
   } catch (error) {
     console.error("Error in checkAuth:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 // This code defines a user controller for handling user authentication in a Node.js application. It includes functions for registering, logging in, logging out, and checking authentication status. The functions use bcrypt for password hashing and JWT for token generation. The code also includes error handling and validation for user input.

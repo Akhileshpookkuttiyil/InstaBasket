@@ -17,9 +17,11 @@ const ProductCategory = () => {
   );
 
   // Filter products by category
-  const productsInCategory = products.filter(
-    (product) => product.category.toLowerCase() === categoryName
-  );
+const productsInCategory = products.filter(
+  (product) =>
+    typeof product.category === "string" &&
+    product.category.toLowerCase() === categoryName
+);
 
   // Render if category not found
   if (!foundCategory) {

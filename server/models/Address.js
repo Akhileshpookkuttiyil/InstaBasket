@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 const addressSchema = new mongoose.Schema(
   {
     userId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
+      ref: "User",
     },
     firstName: {
       type: String,
@@ -20,6 +21,7 @@ const addressSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      lowercase: true,
     },
     phone: {
       type: String,
@@ -41,8 +43,9 @@ const addressSchema = new mongoose.Schema(
       trim: true,
     },
     zipcode: {
-      type: Number,
+      type: String,  // Changed from Number to String
       required: true,
+      trim: true,
     },
     country: {
       type: String,
@@ -55,8 +58,6 @@ const addressSchema = new mongoose.Schema(
   }
 );
 
-// Create the model only if it doesn't exist
-const Address =
-  mongoose.models.address || mongoose.model("address", addressSchema);
+const Address = mongoose.models.Address || mongoose.model("Address", addressSchema);
 
 export default Address;

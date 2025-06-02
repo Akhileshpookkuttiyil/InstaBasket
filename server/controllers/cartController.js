@@ -4,12 +4,12 @@ import User from "../models/User.js";
 
 export const updateCart = async (req, res) => {
   try {
-    const { userId, cartData } = req.body;
+    const { cartData } = req.body;
+    const userId = req.user.id;
 
-    // Find the user by ID and update the cart
     const user = await User.findByIdAndUpdate(
       userId,
-      { cart: cartData },
+      { cartItems: cartData },
       { new: true }
     );
 
@@ -23,7 +23,7 @@ export const updateCart = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Cart updated successfully",
-      cart: user.cart,
+      cartItems: user.cartItems, 
     });
   } catch (error) {
     console.error(error);

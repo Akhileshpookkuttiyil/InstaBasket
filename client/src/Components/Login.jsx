@@ -1,28 +1,43 @@
 import React from "react";
 import { useAppContext } from "../Context/AppContext";
+import toast from "react-hot-toast";
 
 const Login = () => {
-  const { setshowUserLogin,setUser } = useAppContext();
+  const { setshowUserLogin, axios, setUser, navigate } = useAppContext();
   const [state, setState] = React.useState("login");
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
 
   const onSubmitHandler = async (event) => {
-    event.preventDefault();
-    setUser({
-      email:"test@gmail.com",
-      name:"test",
-    })
-    setshowUserLogin(false);
-  }
+    try {
+      event.preventDefault();
+      const { data } = await axios.post(`/api/user/${state}`, {
+        name,
+        email,
+        password,
+      });
+      if (data.success) {
+        navigate("/");
+        setUser(data.user);
+        setshowUserLogin(false);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.message || error.message || "An error occurred";
+      toast.error(message);
+    }
+  };
 
   return (
     <div
       onClick={() => setshowUserLogin(false)}
       className="fixed top-0 bottom-0 left-0 right-0 z-30 flex items-center text-sm text-gray-600 bg-black/50"
     >
-      <form onSubmit={onSubmitHandler}
+      <form
+        onSubmit={onSubmitHandler}
         onClick={(e) => e.stopPropagation()}
         className="flex flex-col gap-4 m-auto items-start p-8 py-12 w-80 sm:w-[352px] rounded-lg shadow-xl border border-gray-200 bg-white"
       >
