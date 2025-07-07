@@ -10,6 +10,7 @@ const Navbar = () => {
     user,
     setUser,
     setshowUserLogin,
+    setCartItems,
     navigate,
     searchQuery,
     setsearchQuery,
@@ -24,6 +25,7 @@ const Navbar = () => {
         if (data.success) {
           toast.success(data.message);
           setUser(null);
+          setCartItems([]);
           navigate("/");
         } else {
           toast.error(data.message);
