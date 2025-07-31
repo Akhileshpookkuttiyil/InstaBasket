@@ -2,6 +2,9 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
+import PendingUser from "../models/PendingUser.js";
+import crypto from "crypto";
+import sendEmail from "../utils/sendEmail.js";
 
 // Token generator utility
 const generateToken = (user) => {
@@ -22,8 +25,8 @@ const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
-// Register User
-export const registerUser = async (req, res) => {
+// Initiating User
+export const initiateUser = async (req, res) => {
   try {
     let { name, email, password } = req.body;
 
@@ -55,13 +58,78 @@ export const registerUser = async (req, res) => {
         .json({ success: false, message: "User already exists" });
     }
 
+    // Check if pending user exists with valid OTP
+    const existingPending = await PendingUser.findOne({ email });
+    if (existingPending && existingPending.otpExpires > new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP already sent. Please check your email.",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({
-      name,
+
+    // Generate OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
+
+    // Upsert pending user
+    await PendingUser.findOneAndUpdate(
+      { email },
+      { name, email, hashedPassword, otp, otpExpires },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    // Send OTP email
+    await sendEmail(
       email,
-      password: hashedPassword,
+      "Verify your account",
+      `Your OTP is: ${otp}. It expires in 5 minutes.`,
+      `<p>Your OTP code is: <b>${otp}</b></p><p>This code expires in 5 minutes.</p>`
+    );
+
+    res.status(200).json({ success: true, message: "OTP sent to your email." });
+  } catch (error) {
+    console.error("Error in initiateUser:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Initiating User
+export const verifyUser = async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    if (!email || !otp) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and OTP required" });
+    }
+    email = email.toLowerCase();
+    const pendingUser = await PendingUser.findOne({ email });
+    if (!pendingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No pending registration found" });
+    }
+    if (pendingUser.otp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+    if (pendingUser.otpExpires < new Date()) {
+      await PendingUser.deleteOne({ email });
+      return res.status(400).json({ success: false, message: "OTP expired" });
+    }
+    // Create user
+    const newUser = await User.create({
+      name: pendingUser.name,
+      email: pendingUser.email,
+      password: pendingUser.hashedPassword,
     });
 
+    // Remove from pending users
+    await PendingUser.deleteOne({ email });
+
+    // Generate JWT token and set cookie (adjust your cookie options)
     const token = generateToken(newUser);
     res.cookie("token", token, cookieOptions);
 
@@ -72,15 +140,12 @@ export const registerUser = async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        isAdmin: newUser.isAdmin,
+        isAdmin: newUser.isAdmin || false,
       },
     });
   } catch (error) {
-    console.error("Error in registerUser:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error. Please try again later.",
-    });
+    console.error("Error in verifyOtp:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
