@@ -1,3 +1,4 @@
+// utils/sendEmail.js
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -17,11 +18,11 @@ const sendEmail = async (to, subject, text, html) => {
       from: `"InstaBasket" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      text,
+      text: text || html.replace(/<[^>]*>?/gm, ""), // fallback plain text
       html,
     });
   } catch (error) {
-    console.error("Email send failed", error);
+    console.error("Email send failed:", error.message);
     throw new Error("Failed to send email");
   }
 };

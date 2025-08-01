@@ -1,32 +1,34 @@
 // userRoute.js
-// Routes related to user authentication (register, login, logout, auth check)
-
 import express from "express";
 import {
   checkAuth,
   initiateUser,
   loginUser,
   logoutUser,
+  resendOtp,
   verifyUser,
 } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
+import rateLimit from "express-rate-limit";
+
+const otpLimiter = rateLimit({
+  windowMs: 60 * 5000, // 5 minute
+  max: 3, //3 OTP
+});
 
 const userRouter = express.Router();
 
-//route   POST /register
 //desc    Register a new user
-userRouter.post("/register/initiate", initiateUser);
+userRouter.post("/register/initiate", otpLimiter, initiateUser);
 userRouter.post("/register/verify", verifyUser);
+userRouter.post("/register/resend", otpLimiter, resendOtp);
 
-//route   POST /login
 //desc    Log in an existing user
 userRouter.post("/login", loginUser);
 
-//route   POST /logout
 //desc    Log out the user
 userRouter.get("/logout", authUser, logoutUser);
 
-//route   GET /auth
 //desc    Check if the user is authenticated
 //access  Private
 userRouter.get("/auth", authUser, checkAuth);

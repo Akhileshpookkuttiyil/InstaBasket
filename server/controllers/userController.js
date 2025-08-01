@@ -149,6 +149,45 @@ export const verifyUser = async (req, res) => {
   }
 };
 
+//resend otp
+export const resendOtp = async (req, res) => {
+  try {
+    let { email } = req.body;
+    if (!email || !validator.isEmail(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email" });
+    }
+
+    email = email.toLowerCase();
+    const pendingUser = await PendingUser.findOne({ email });
+    if (!pendingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No pending registration" });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+    pendingUser.otp = otp;
+    pendingUser.otpExpires = otpExpires;
+    await pendingUser.save();
+
+    await sendEmail(
+      email,
+      "Your OTP Code",
+      `Your OTP is: ${otp}. It expires in 5 minutes.`,
+      `<p>Your OTP code is: <b>${otp}</b></p><p>This code expires in 5 minutes.</p>`
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, message: "OTP re-sent successfully" });
+  } catch (error) {
+    console.error("Error in resendOtp:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 // Login User
 export const loginUser = async (req, res) => {
   try {
