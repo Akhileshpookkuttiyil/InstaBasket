@@ -24,7 +24,7 @@ const ProductCard = ({ product }) => {
     >
       <div className="group cursor-pointer flex items-center justify-center px-2">
         <img
-          className="group-hover:scale-105 transition max-w-26 md:max-w-36"
+          className="group-hover:scale-105 transition w-[150px] h-[150px] object-contain"
           src={product?.image?.[0]}
           alt={product?.name || "Product"}
         />
