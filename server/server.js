@@ -20,8 +20,8 @@ await connectDB();
 await cloudinaryConfig(); // Initialize Cloudinary configuration
 
 const allowedOrigins = [
-  "http://localhost:5173", // for local dev
-  "https://insta-basket-emn72f5wj-akhileshs-projects-3a501593.vercel.app", // deployed frontend
+  "http://localhost:5173",
+  "https://insta-basket.vercel.app",
 ];
 
 app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhook);
