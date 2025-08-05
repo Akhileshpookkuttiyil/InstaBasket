@@ -17,14 +17,13 @@ const ProductCard = ({ product }) => {
             product._id
           }`
         );
-
         scrollTo({ top: 0, behavior: "smooth" });
       }}
-      className="border border-gray-500/20 rounded-md bg-white w-[200px] max-w-[220px] mx-auto px-3 py-2"
+      className="border border-gray-500/20 rounded-md bg-white w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto px-3 py-2"
     >
       <div className="group cursor-pointer flex items-center justify-center px-2">
         <img
-          className="group-hover:scale-105 transition w-[150px] h-[150px] object-contain"
+          className="group-hover:scale-105 transition w-full h-[150px] object-contain"
           src={product?.image?.[0]}
           alt={product?.name || "Product"}
         />

@@ -6,16 +6,16 @@ const BestSeller = () => {
   const { products } = useAppContext();
 
   return (
-    <div className="mt-16">
+    <div className="mt-16 px-4">
       <p className="text-2xl md:text-3xl font-medium">Best Sellers</p>
 
-      {/* Professionally responsive grid layout */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10 justify-items-center items-start mt-6">
+      {/* Responsive grid layout */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 mt-6">
         {products
           .filter((product) => product.inStock)
-          .slice(0, 5)
+          .slice(0, 5) // Only display 5
           .map((product) => (
-            <div key={product._id} className="w-64 h-80">
+            <div key={product._id} className="w-full h-auto max-w-xs mx-auto">
               <ProductCard product={product} />
             </div>
           ))}

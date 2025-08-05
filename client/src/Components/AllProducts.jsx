@@ -11,7 +11,6 @@ const AllProducts = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Wait for products to be loaded
     if (!products || products.length === 0) return;
 
     try {
@@ -30,27 +29,31 @@ const AllProducts = () => {
   }, [products, searchQuery]);
 
   if (error) {
-    return <p className="text-center text-red-500 mt-10">{error}</p>;
+    return <p className="text-center text-red-500 mt-10 px-4">{error}</p>;
   }
 
   const inStockProducts = filteredProducts.filter((product) => product.inStock);
 
   return (
-    <div className="mt-16 flex flex-col">
-      <div className="flex flex-col items-end w-max">
-        <p className="text-2xl font-medium uppercase">All Products</p>
-        <div className="w-16 h-0.5 bg-primary rounded-full"></div>
+    <div className="mt-16 px-4 sm:px-6 lg:px-12">
+      {/* Heading */}
+      <div className="flex flex-col items-center mb-8">
+        <h2 className="text-2xl sm:text-3xl font-semibold uppercase text-center">
+          All Products
+        </h2>
+        <div className="w-16 h-1 bg-primary rounded-full mt-2" />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 mt-6">
+      {/* Product Grid */}
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
         {loading ? (
-          Array.from({ length: 8 }).map((_, index) => (
+          Array.from({ length: 10 }).map((_, index) => (
             <ProductSkeleton key={index} />
           ))
         ) : inStockProducts.length === 0 ? (
-          <p className="text-center text-gray-500 col-span-full mt-10">
+          <div className="col-span-full text-center text-gray-500 mt-10">
             No products found.
-          </p>
+          </div>
         ) : (
           inStockProducts.map((product, index) => (
             <ProductCard key={index} product={product} />

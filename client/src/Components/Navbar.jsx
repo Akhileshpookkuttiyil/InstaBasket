@@ -46,7 +46,7 @@ const Navbar = () => {
     <nav
       role="navigation"
       aria-label="Primary Navigation"
-      className="flex items-center justify-between px-2 md:px-8 lg:px-12 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all"
+      className="flex items-center justify-between px-2 md:px-8 lg:px-12 xl:px-16 py-4 border-b border-gray-300 bg-white relative transition-all z-40"
     >
       {/* Logo */}
       <NavLink
