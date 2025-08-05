@@ -23,6 +23,13 @@ const Cart = () => {
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("COD");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (products.length > 0 && cartItems) {
+      setTimeout(() => setLoading(false), 500);
+    }
+  }, [products, cartItems]);
 
   const cartArray = useMemo(() => {
     return Object.keys(cartItems)
@@ -110,7 +117,13 @@ const Cart = () => {
     }
   };
 
-  if (!products.length || !cartItems) return null;
+  if (loading) {
+    return (
+      <div className="mt-20 text-center text-lg text-gray-500 animate-pulse">
+        Loading your cart...
+      </div>
+    );
+  }
 
   if (!cartArray.length) {
     return (

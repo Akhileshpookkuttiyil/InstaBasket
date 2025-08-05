@@ -3,6 +3,7 @@ import { useAppContext } from "../Context/AppContext";
 import { Link, useParams } from "react-router-dom";
 import { assets } from "../assets/assets";
 import ProductCard from "../Components/ProductCard";
+import ProductDetailsSkeleton from "../Components/ProductDetailsSkeleton";
 
 const ProductDetails = () => {
   const { products, navigate, currency, addToCart } = useAppContext();
@@ -10,26 +11,34 @@ const ProductDetails = () => {
 
   const [thumbnail, setThumbnail] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ new loading state
+
   const product = products.find((item) => item._id === id);
 
-  // Fetch related products by category
+  // Simulate loading (fake timeout to mimic fetching)
+  useEffect(() => {
+    if (product) {
+      setThumbnail(product.image[0]);
+      setLoading(false); // ✅ hide skeleton after data is available
+    }
+  }, [product]);
+
+  // Set related products
   useEffect(() => {
     if (products.length > 0 && product?.category) {
       const related = products.filter(
         (item) => item.category === product.category && item._id !== product._id
       );
-      setRelatedProducts(related.slice(0, 5)); // Show up to 5 related products
+      setRelatedProducts(related.slice(0, 5));
     }
   }, [products, product]);
 
-  // Set initial thumbnail image
-  useEffect(() => {
-    if (product?.image?.length > 0) {
-      setThumbnail(product.image[0]);
-    }
-  }, [product]);
+  // ✅ Show skeleton while loading
+  if (loading) {
+    return <ProductDetailsSkeleton />;
+  }
 
-  // Handle case when product is not found
+  // Handle not found
   if (!product) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -51,26 +60,23 @@ const ProductDetails = () => {
 
       {/* Main Content */}
       <div className="flex flex-col md:flex-row gap-16 mt-6">
-        {/* Images Section */}
+        {/* Images */}
         <div className="flex gap-4">
-          {/* Thumbnail List */}
           <div className="flex flex-col gap-3">
             {product.image.map((image) => (
               <div
-                key={image} // Using image URL or unique value as key
+                key={image}
                 onClick={() => setThumbnail(image)}
                 className="border border-gray-300 rounded cursor-pointer overflow-hidden hover:opacity-75"
               >
                 <img
                   src={image}
                   alt="Thumbnail"
-                  className="max-w-[70px] h-[70px] object-cover"
+                  className="max-w-[70px] h-[70px] object-contain"
                 />
               </div>
             ))}
           </div>
-
-          {/* Main Thumbnail */}
           <div className="border border-gray-300 rounded overflow-hidden">
             <img
               src={thumbnail}
@@ -80,7 +86,7 @@ const ProductDetails = () => {
           </div>
         </div>
 
-        {/* Product Details */}
+        {/* Details */}
         <div className="text-sm w-full md:w-1/2">
           <h1 className="text-3xl font-semibold">{product.name}</h1>
 
@@ -99,7 +105,7 @@ const ProductDetails = () => {
             <p className="text-base ml-2 text-gray-500">(4)</p>
           </div>
 
-          {/* Pricing */}
+          {/* Price */}
           <div className="mt-6">
             <p className="text-gray-400 line-through">
               MRP: {currency}
@@ -152,7 +158,7 @@ const ProductDetails = () => {
           {relatedProducts
             .filter((product) => product.inStock)
             .map((product) => (
-              <ProductCard key={product._id} product={product} /> // Use unique _id as key
+              <ProductCard key={product._id} product={product} />
             ))}
         </div>
         <button
