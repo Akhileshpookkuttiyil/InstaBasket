@@ -19,7 +19,7 @@ const ProductCard = ({ product }) => {
         );
         scrollTo({ top: 0, behavior: "smooth" });
       }}
-      className="border border-gray-500/20 rounded-md bg-white w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto px-3 py-2"
+      className="border border-gray-500/20 rounded-md bg-white w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto px-2.5 py-2"
     >
       <div className="group cursor-pointer flex items-center justify-center px-2">
         <img
@@ -47,13 +47,16 @@ const ProductCard = ({ product }) => {
           <p>({4})</p>
         </div>
         <div className="flex items-end justify-between mt-3">
-          <p className="md:text-xl text-base font-medium text-primary">
-            {currency}
-            {product.offerPrice}{" "}
-            <span className="text-gray-500/60 md:text-sm text-xs line-through">
+          <p className="md:text-xl text-base font-medium text-primary flex flex-col md:flex-row gap-1">
+            <span className="text-gray-500/60 md:text-sm text-xs line-through md:ml-1 mt-1 md:mt-0">
               {currency} {product.price}
             </span>
+            <span>
+              {currency}
+              {product.offerPrice}
+            </span>
           </p>
+
           <div className="text-primary">
             {!itemQuantity ? (
               <button

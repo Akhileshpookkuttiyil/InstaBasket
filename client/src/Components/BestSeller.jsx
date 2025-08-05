@@ -15,7 +15,7 @@ const BestSeller = () => {
           .filter((product) => product.inStock)
           .slice(0, 5) // Only display 5
           .map((product) => (
-            <div key={product._id} className="w-full h-auto max-w-xs mx-auto">
+            <div key={product._id} className="w-full h-auto max-w-xl mx-auto">
               <ProductCard product={product} />
             </div>
           ))}
