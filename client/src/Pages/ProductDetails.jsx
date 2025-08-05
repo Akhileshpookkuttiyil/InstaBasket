@@ -72,7 +72,7 @@ const ProductDetails = () => {
                 <img
                   src={image}
                   alt="Thumbnail"
-                  className="max-w-[70px] h-[70px] object-contain"
+                  className="w-full h-full object-contain"
                 />
               </div>
             ))}
@@ -81,7 +81,7 @@ const ProductDetails = () => {
             <img
               src={thumbnail}
               alt="Selected product"
-              className="w-full max-h-[300px] object-contain"
+              className="w-full h-full object-contain"
             />
           </div>
         </div>
