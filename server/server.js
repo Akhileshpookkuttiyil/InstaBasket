@@ -28,7 +28,7 @@ app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: allowOrigin, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");
