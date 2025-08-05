@@ -1,14 +1,16 @@
-import React from "react";
+import React, { memo } from "react";
 import styles from "./MainBanner.module.css";
 import { assets } from "../assets/assets";
 import { Link } from "react-router-dom";
 
-const MainBanner = () => {
+const MainBanner = memo(() => {
   return (
     <div className="relative">
-      {/* Banner Images */}
+      {/* Banner Images with srcset */}
       <img
         rel="preload"
+        srcSet={`${assets.main_banner_bg} 1024w, ${assets.main_banner_bg_sm} 600w`}
+        sizes="(max-width: 768px) 600px, 1024px"
         src={assets.main_banner_bg}
         alt="Promotional banner"
         className="w-full hidden md:block max-w-screen"
@@ -16,6 +18,8 @@ const MainBanner = () => {
       />
       <img
         rel="preload"
+        srcSet={`${assets.main_banner_bg_sm} 600w`}
+        sizes="600px"
         src={assets.main_banner_bg_sm}
         alt="Mobile-friendly promotional banner"
         className="w-full block md:hidden max-w-screen"
@@ -66,6 +70,6 @@ const MainBanner = () => {
       </div>
     </div>
   );
-};
+});
 
 export default MainBanner;
