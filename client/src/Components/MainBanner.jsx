@@ -8,12 +8,14 @@ const MainBanner = () => {
     <div className="relative">
       {/* Banner Images */}
       <img
+        rel="preload"
         src={assets.main_banner_bg}
         alt="Promotional banner"
         className="w-full hidden md:block max-w-screen"
         loading="lazy"
       />
       <img
+        rel="preload"
         src={assets.main_banner_bg_sm}
         alt="Mobile-friendly promotional banner"
         className="w-full block md:hidden max-w-screen"
@@ -39,7 +41,7 @@ const MainBanner = () => {
           {/* Primary Button */}
           <Link
             className="group px-6 py-3 bg-primary hover:bg-primary-dark text-white font-medium rounded shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 flex items-center gap-2"
-            to="/products" 
+            to="/products"
           >
             Start Shopping
             <img
