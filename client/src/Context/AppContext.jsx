@@ -52,7 +52,7 @@ export const AppContextProvider = ({ children }) => {
     try {
       const { data } = await axios.get("/api/user/auth");
       if (data.success) {
-        setUser(data.user);
+        setUser(data.user || null);
         setCartItems(data.user.cartItems);
       } else {
         toast.error(data.message);
@@ -60,10 +60,9 @@ export const AppContextProvider = ({ children }) => {
     } catch (error) {
       setUser(null);
       console.log(error.message);
+    } finally {
+      setLoading(false);
     }
-      finally {
-    setLoading(false);
-  }
   };
 
   const fetchProducts = async () => {
@@ -192,7 +191,8 @@ export const AppContextProvider = ({ children }) => {
     axios,
     fetchProducts,
     loading,
-    setCartItems
+    setLoading,
+    setCartItems,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -16,6 +16,7 @@ const Navbar = () => {
     setsearchQuery,
     getCartCount,
     axios,
+    loading,
   } = useAppContext();
 
   const handleLogout = async () => {
@@ -131,47 +132,94 @@ const Navbar = () => {
             alt="Cart Icon"
             className="w-6 opacity-80"
           />
-          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
-            {getCartCount() || 0}
+          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full flex items-center justify-center">
+            {loading ? (
+              <svg
+                className="w-3 h-3 animate-spin text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            ) : (
+              getCartCount() || 0
+            )}
           </span>
         </button>
 
         {/* User Login/Logout */}
-        {!user ? (
-          <button
-            onClick={() => setshowUserLogin(true)}
-            className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full"
-          >
-            Login
-          </button>
-        ) : (
-          <div className="relative group">
-            <img
-              src={assets.profile_icon}
-              alt="User Icon"
-              className="w-10 h-10 rounded-full cursor-pointer"
-            />
-            <ul
-              role="menu"
-              className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-30 rounded-md text-sm z-40 flex-col"
+        <div className="min-w-[40px] flex items-center justify-center">
+          {loading ? (
+            <svg
+              className="w-5 h-5 text-primary animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              <li
-                role="menuitem"
-                onClick={() => navigate("/my-orders")}
-                className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              ></path>
+            </svg>
+          ) : !user ? (
+            <button
+              onClick={() => setshowUserLogin(true)}
+              className="cursor-pointer px-8 py-2 bg-primary hover:bg-primary-dull transition text-white rounded-full"
+            >
+              Login
+            </button>
+          ) : (
+            <div className="relative group">
+              <img
+                src={assets.profile_icon}
+                alt="User Icon"
+                className="w-10 h-10 rounded-full cursor-pointer"
+              />
+              <ul
+                role="menu"
+                aria-label="User menu"
+                className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-32 rounded-md text-sm z-40 flex-col"
               >
-                My Orders
-              </li>
-              <li
-                role="menuitem"
-                onClick={handleLogout}
-                className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
-              >
-                Log Out
-              </li>
-            </ul>
-          </div>
-        )}
+                <li
+                  role="menuitem"
+                  onClick={() => navigate("/my-orders")}
+                  className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
+                >
+                  My Orders
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
+                >
+                  Log Out
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mobile Menu */}
@@ -221,7 +269,30 @@ const Navbar = () => {
           <NavLink to="/contact" onClick={() => setMenuOpen(false)}>
             Contact
           </NavLink>
-          {!user ? (
+          {loading ? (
+            <div className="px-6 py-2 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-primary animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            </div>
+          ) : !user ? (
             <button
               onClick={() => {
                 setMenuOpen(false);
