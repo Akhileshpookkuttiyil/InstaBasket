@@ -300,7 +300,6 @@ export const getUserOrders = async (req, res) => {
 
 // GET /api/order/getallorders
 export const getAllOrders = async (req, res) => {
-  console.log("Fetching all orders...");
 
   try {
     const orders = await Order.find({

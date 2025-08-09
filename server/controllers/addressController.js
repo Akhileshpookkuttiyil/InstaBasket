@@ -46,14 +46,11 @@ export const addAddress = async (req, res) => {
   }
 };
 
-
 // get all address : GET /api/address/get
 export const getAllAddress = async (req, res) => {
-  console.log("getallAddress")
   try {
-    const  userId  = req.user.id;
+    const userId = req.user.id;
     const addresses = await Address.find({ userId });
-    console.log("Fetched addresses server:", addresses);
     res.status(200).json({
       success: true,
       addresses,
