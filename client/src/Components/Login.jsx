@@ -70,6 +70,7 @@ const Login = () => {
           password,
         });
         if (data.success) {
+          toast.success(data.message);
           setUser(data.user);
           setCartItems(data.user.cartItems || []);
           navigate("/");

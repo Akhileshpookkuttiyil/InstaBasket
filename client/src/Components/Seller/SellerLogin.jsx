@@ -17,7 +17,7 @@ const SellerLogin = () => {
       });
       if (data.success) {
         setIsSeller(true);
-        // localStorage.setItem("seller", JSON.stringify(data.seller));
+        toast.success(data.message);
         navigate("/seller/");
       } else {
         toast.error(data.message);
