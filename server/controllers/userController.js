@@ -5,6 +5,7 @@ import validator from "validator";
 import PendingUser from "../models/PendingUser.js";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
+import axios from "axios";
 
 // Token generator utility
 const generateToken = (user) => {
@@ -185,6 +186,62 @@ export const resendOtp = async (req, res) => {
   } catch (error) {
     console.error("Error in resendOtp:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// GOOGLE LOGIN CONTROLLER //
+export const googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Google token is required.",
+      });
+    }
+
+    // 1. Fetch user info from Google
+    const googleRes = await axios.get(
+      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${token}`
+    );
+
+    const { email, name, picture } = googleRes.data;
+
+    // 2. Check if user exists
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        name,
+        email,
+        profileImage: picture,
+        provider: "google",
+        password: null,
+      });
+    }
+
+    // 3. Generate JWT
+    const jwtToken = generateToken(user);
+    res.cookie("token", jwtToken, cookieOptions);
+
+    return res.status(200).json({
+      success: true,
+      message: "Google login successful.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profileImage: user.profileImage,
+        isAdmin: user.isAdmin || false,
+      },
+    });
+  } catch (error) {
+    console.error("Google login error:", error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: "Google login failed. Please try again later.",
+    });
   }
 };
 

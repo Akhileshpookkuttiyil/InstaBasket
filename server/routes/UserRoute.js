@@ -2,6 +2,7 @@
 import express from "express";
 import {
   checkAuth,
+  googleLogin,
   initiateUser,
   loginUser,
   logoutUser,
@@ -25,6 +26,8 @@ userRouter.post("/register/resend", otpLimiter, resendOtp);
 
 //desc    Log in an existing user
 userRouter.post("/login", loginUser);
+
+userRouter.post("/google-login", googleLogin);
 
 //desc    Log out the user
 userRouter.get("/logout", authUser, logoutUser);
