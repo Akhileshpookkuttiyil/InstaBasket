@@ -5,7 +5,7 @@ import validator from "validator";
 import PendingUser from "../models/PendingUser.js";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
-import axios from "axios";
+import { axios } from "../../client/src/Context/AppContext.jsx";
 
 // Token generator utility
 const generateToken = (user) => {
