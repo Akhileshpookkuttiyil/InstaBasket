@@ -13,7 +13,15 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        // password required only if not using Google auth
+        return !this.googleId;
+      },
+      select: false, // don’t send password by default in queries
+    },
+    googleId: {
+      type: String,
+      default: null, // only set when registered via Google
     },
     cartItems: {
       type: Object,

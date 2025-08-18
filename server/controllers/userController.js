@@ -205,7 +205,7 @@ export const googleLogin = async (req, res) => {
       `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${token}`
     );
 
-    const { email, name, picture } = googleRes.data;
+    const { id: googleId, email, name, picture } = googleRes.data;
 
     // 2. Check if user exists
     let user = await User.findOne({ email });
@@ -215,10 +215,15 @@ export const googleLogin = async (req, res) => {
       user = await User.create({
         name,
         email,
+        googleId,
         profileImage: picture,
         provider: "google",
-        password: null,
       });
+    } else if (!user.googleId) {
+      // If user registered earlier with email/password, link Google account
+      user.googleId = googleId;
+      user.profileImage = user.profileImage || picture;
+      await user.save();
     }
 
     // 3. Generate JWT
