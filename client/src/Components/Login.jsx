@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAppContext } from "../Context/AppContext";
 import toast from "react-hot-toast";
 import OtpVerificationForm from "./OtpVerificationForm";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
   const { setshowUserLogin, axios, setUser, navigate, setCartItems } =
@@ -38,6 +39,28 @@ const Login = () => {
       }
     }
   };
+
+  const handleGoogleLogin = async (res) => {
+    try {
+      const response = await axios.post(
+        "/api/user/google-login",
+        { token: res.access_token },
+        { withCredentials: true }
+      );
+      setUser(response.data.user);
+      toast.success("Google login success");
+      setshowUserLogin(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Google login failed");
+    }
+  };
+
+  const loginWithGoogle = useGoogleLogin({
+    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    onSuccess: handleGoogleLogin,
+    onError: () => toast.error("Google login failed"),
+  });
 
   const handleOtpSubmit = async () => {
     try {
@@ -177,6 +200,20 @@ const Login = () => {
           >
             {state === "login" ? "Login" : "Continue"}
           </button>
+          <div className="mt-4">
+            <button
+              onClick={loginWithGoogle}
+              aria-label="Sign in with Google"
+              className="w-full flex items-center justify-center gap-2 py-2 border rounded-full text-sm font-medium text-gray-800 bg-white shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <img
+                src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
+                alt=""
+                className="w-5 h-5"
+              />
+              <span>Sign in with Google</span>
+            </button>
+          </div>
         </form>
       )}
     </div>
