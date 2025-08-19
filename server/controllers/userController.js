@@ -202,10 +202,7 @@ export const googleLogin = async (req, res) => {
 
     // 1. Fetch user info from Google
     const googleRes = await axios.get(
-      `https://www.googleapis.com/oauth2/v3/userinfo`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${token}`
     );
 
     const { id: googleId, email, name, picture } = googleRes.data;
