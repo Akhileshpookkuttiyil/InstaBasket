@@ -43,10 +43,11 @@ const Login = () => {
   const handleGoogleLogin = async (res) => {
     try {
       const response = await axios.post(
-        "/api/user/google-login",
+        `${import.meta.env.VITE_BASE_URL}/api/user/google-login`,
         { token: res.access_token },
         { withCredentials: true }
       );
+
       setUser(response.data.user);
       toast.success("Google login success");
       setshowUserLogin(false);
