@@ -2,8 +2,10 @@ import React, { memo } from "react";
 import styles from "./MainBanner.module.css";
 import { assets } from "../assets/assets";
 import { Link } from "react-router-dom";
+import { useAppContext } from "../Context/AppContext";
 
 const MainBanner = memo(() => {
+  const { navigate } = useAppContext();
   return (
     <div className="relative">
       {/* Banner Images with srcset */}
@@ -55,9 +57,13 @@ const MainBanner = memo(() => {
             />
           </Link>
           {/* Secondary Button */}
-          <Link
-            className="group px-6 py-3 border border-gray-300 text-gray-800 hover:border-gray-400 hover:text-gray-900 font-medium rounded shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-            to="/products"
+          <div
+            role="button"
+            className="group px-6 py-3 border border-gray-300 text-gray-800 hover:border-gray-400 hover:text-gray-900 font-medium rounded shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              navigate("/products");
+              scrollTo({ top: 0, behavior: "smooth" });
+            }}
           >
             Explore Now
             <img
@@ -65,7 +71,7 @@ const MainBanner = memo(() => {
               src={assets.black_arrow_icon}
               alt="arrow"
             />
-          </Link>
+          </div>
         </div>
       </div>
     </div>

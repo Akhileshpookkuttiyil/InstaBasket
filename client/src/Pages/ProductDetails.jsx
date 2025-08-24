@@ -11,7 +11,7 @@ const ProductDetails = () => {
 
   const [thumbnail, setThumbnail] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ new loading state
+  const [loading, setLoading] = useState(true); 
 
   const product = products.find((item) => item._id === id);
 
