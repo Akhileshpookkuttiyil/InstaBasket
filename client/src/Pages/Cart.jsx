@@ -110,8 +110,8 @@ const Cart = () => {
           toast.error("Payment initiation failed.");
         }
       }
-    } catch {
-      toast.error("Something went wrong while placing the order.");
+    } catch (error) {
+      toast.error(error.message);
     } finally {
       setIsPlacingOrder(false);
     }

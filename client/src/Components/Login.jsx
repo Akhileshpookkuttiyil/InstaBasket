@@ -50,6 +50,7 @@ const Login = () => {
       setUser(response.data.user);
       toast.success("Google login success");
       setshowUserLogin(false);
+      window.location.reload();
     } catch (error) {
       console.error(error);
       toast.error("Google login failed");
@@ -98,6 +99,7 @@ const Login = () => {
           setCartItems(data.user.cartItems || []);
           navigate("/");
           setshowUserLogin(false);
+          window.location.reload();
         } else toast.error(data.message);
       } else if (state === "register-init") {
         const { data } = await axios.post("/api/user/register/initiate", {
