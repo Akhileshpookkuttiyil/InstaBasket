@@ -1,77 +1,108 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { useAppContext } from "../../Context/AppContext";
-import { useState } from "react";
 import toast from "react-hot-toast";
+import { Link, Navigate } from "react-router-dom";
 
 const SellerLogin = () => {
   const { isSeller, setIsSeller, navigate, axios } = useAppContext();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("seller@instabasket.com");
+  const [password, setPassword] = useState("instabasket");
 
   const onSubmitHandler = async (event) => {
+    event.preventDefault();
+    setLoading(true);
     try {
-      event.preventDefault();
       const { data } = await axios.post("/api/seller/login", {
         email,
         password,
       });
+
       if (data.success) {
         setIsSeller(true);
         toast.success(data.message);
         navigate("/seller/");
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Login failed");
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(
+        error.response?.data?.message || error.message || "Login error"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isSeller) {
-      navigate("/seller/");
-    }
-  }, [isSeller]);
+  // Redirect if already logged in
+  if (isSeller) return <Navigate to="/seller/" replace />;
 
   return (
-    !isSeller && (
-      <form
-        onSubmit={onSubmitHandler}
-        className="min-h-screen flex items-center text-sm text-gray-600"
-      >
-        <div className="flex flex-col gap-5 m-auto items-start p-8 py-12 min-w-80 sm:min-w-88 rounded-lg shadow-xl border border-gray-200">
-          <p className="text-2xl font-medium m-auto">
-            <span className="text-primary">Seller </span>
-            Login
-          </p>
-          <div className="w-full">
-            <p>Email</p>
-            <input
-              onChange={(e) => setEmail(e.target.value)}
-              value={email}
-              className="border border-gray-200 rounded w-full p-2 mt-1 outline-primary"
-              required
-              type="email"
-              placeholder="Enter Email"
-            />
-          </div>
-          <div className="w-full">
-            <p>Password</p>
-            <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              className="border border-gray-200 rounded w-full p-2 mt-1 outline-primary"
-              required
-              type="password"
-              placeholder="Enter Password"
-            />
-          </div>
-          <button className="bg-primary text-white w-full  py-2 rounded-md cursor-pointer">
-            Login
-          </button>
+    <form
+      onSubmit={onSubmitHandler}
+      className="min-h-screen flex items-center justify-center bg-gray-50 px-4 text-sm text-gray-700"
+    >
+      <div className="flex flex-col gap-5 w-full max-w-md sm:w-[352px] p-4 py-10 rounded-lg shadow-xl border border-gray-200 bg-white">
+        <h1 className="text-2xl font-semibold text-center">
+          <span className="text-primary">Seller</span> Login
+        </h1>
+
+        {/* Email */}
+        <div className="w-full">
+          <label htmlFor="email" className="block mb-1">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded p-2 mt-1 outline-primary"
+          />
         </div>
-      </form>
-    )
+
+        {/* Password */}
+        <div className="w-full">
+          <label htmlFor="password" className="block mb-1">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full border border-gray-300 rounded p-2 mt-1 outline-primary"
+          />
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-primary hover:bg-primary-dull transition text-white w-full py-2 rounded-md disabled:opacity-50"
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+        {/* Link to user login */}
+        <p className="w-full text-center text-sm text-gray-600">
+          Are you a user?{" "}
+          <Link
+            to="/"
+            className="text-primary underline hover:text-primary-dull"
+          >
+            Go to User Login
+          </Link>
+        </p>
+      </div>
+    </form>
   );
 };
+
 export default SellerLogin;

@@ -196,6 +196,13 @@ const Login = () => {
             </span>
           </p>
 
+          <p className="w-full text-center text-sm">
+            Are you a seller?{" "}
+            <a href="/seller" className="text-primary cursor-pointer">
+              Go to Seller Login
+            </a>
+          </p>
+
           <button
             type="submit"
             className="bg-primary hover:bg-primary-dull transition-all text-white w-full py-2 rounded-md cursor-pointer"
