@@ -1,18 +1,14 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import validator from "validator";
 import PendingUser from "../models/PendingUser.js";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 import axios from "axios";
+import asyncHandler from "../utils/asyncHandler.js";
 
 // Token generator utility
 const generateToken = (user) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined");
-  }
-
   return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
@@ -21,311 +17,218 @@ const generateToken = (user) => {
 // Cookie options
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  secure: true,
+  sameSite: "None",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-// Initiating User
-export const initiateUser = async (req, res) => {
-  try {
-    let { name, email, password } = req.body;
+// Initiating User (OTP) : POST /api/user/register/initiate
+export const initiateUser = asyncHandler(async (req, res) => {
+  let { name, email, password } = req.body;
+  email = email.toLowerCase();
 
-    if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please fill all fields" });
-    }
-
-    email = email.toLowerCase();
-
-    if (!validator.isEmail(email)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid email format" });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already exists" });
-    }
-
-    // Check if pending user exists with valid OTP
-    const existingPending = await PendingUser.findOne({ email });
-    if (existingPending && existingPending.otpExpires > new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "OTP already sent. Please check your email.",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
-
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
-
-    // Upsert pending user
-    await PendingUser.findOneAndUpdate(
-      { email },
-      { name, email, hashedPassword, otp, otpExpires },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    // Send OTP email
-    await sendEmail(
-      email,
-      "Verify your account",
-      `Your OTP is: ${otp}. It expires in 5 minutes.`,
-      `<p>Your OTP code is: <b>${otp}</b></p><p>This code expires in 5 minutes.</p>`
-    );
-
-    res.status(200).json({ success: true, message: "OTP sent to your email." });
-  } catch (error) {
-    console.error("Error in initiateUser:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ success: false, message: "Identification already exists" });
   }
-};
 
-// Initiating User
-export const verifyUser = async (req, res) => {
-  try {
-    let { email, otp } = req.body;
-    if (!email || !otp) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email and OTP required" });
-    }
-    email = email.toLowerCase();
-    const pendingUser = await PendingUser.findOne({ email });
-    if (!pendingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No pending registration found" });
-    }
-    if (pendingUser.otp !== otp) {
-      return res.status(400).json({ success: false, message: "Invalid OTP" });
-    }
-    if (pendingUser.otpExpires < new Date()) {
-      await PendingUser.deleteOne({ email });
-      return res.status(400).json({ success: false, message: "OTP expired" });
-    }
-    // Create user
-    const newUser = await User.create({
-      name: pendingUser.name,
-      email: pendingUser.email,
-      password: pendingUser.hashedPassword,
+  const existingPending = await PendingUser.findOne({ email });
+  if (existingPending && existingPending.otpExpires > new Date()) {
+    return res.status(400).json({
+      success: false,
+      message: "Security code already sent. Check your inbox.",
     });
+  }
 
-    // Remove from pending users
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  await PendingUser.findOneAndUpdate(
+    { email },
+    { name, email, hashedPassword, otp, otpExpires },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  await sendEmail(
+    email,
+    "Verify your InstaBasket account",
+    `Your verification code is: ${otp}`,
+    `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #94dc1c;">InstaBasket Verification</h2>
+      <p>Hello, please use the following code to verify your account:</p>
+      <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333; margin: 20px 0;">${otp}</div>
+      <p style="color: #666; font-size: 14px;">This code will expire in 5 minutes.</p>
+    </div>`
+  );
+
+  res.status(200).json({ success: true, message: "Verification code sent!" });
+});
+
+
+// Verify User OTP : POST /api/user/register/verify
+export const verifyUser = asyncHandler(async (req, res) => {
+  let { email, otp } = req.body;
+  email = email.toLowerCase();
+  
+  const pendingUser = await PendingUser.findOne({ email });
+
+  if (!pendingUser) {
+    return res.status(400).json({ success: false, message: "No active registration found for this email" });
+  }
+
+  if (pendingUser.otp !== otp) {
+    return res.status(400).json({ success: false, message: "Invalid verification code" });
+  }
+
+  if (pendingUser.otpExpires < new Date()) {
     await PendingUser.deleteOne({ email });
-
-    // Generate JWT token and set cookie (adjust your cookie options)
-    const token = generateToken(newUser);
-    res.cookie("token", token, cookieOptions);
-
-    return res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        isAdmin: newUser.isAdmin || false,
-      },
-    });
-  } catch (error) {
-    console.error("Error in verifyOtp:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(400).json({ success: false, message: "Verification code expired" });
   }
-};
 
-//resend otp
-export const resendOtp = async (req, res) => {
-  try {
-    let { email } = req.body;
-    if (!email || !validator.isEmail(email)) {
-      return res.status(400).json({ success: false, message: "Invalid email" });
-    }
+  const newUser = await User.create({
+    name: pendingUser.name,
+    email: pendingUser.email,
+    password: pendingUser.hashedPassword,
+  });
 
-    email = email.toLowerCase();
-    const pendingUser = await PendingUser.findOne({ email });
-    if (!pendingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No pending registration" });
-    }
+  await PendingUser.deleteOne({ email });
 
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+  const token = generateToken(newUser);
+  res.cookie("token", token, cookieOptions);
 
-    pendingUser.otp = otp;
-    pendingUser.otpExpires = otpExpires;
-    await pendingUser.save();
+  res.status(201).json({
+    success: true,
+    message: "Elite account created successfully!",
+    user: {
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      isAdmin: newUser.isAdmin || false,
+    },
+  });
+});
 
-    await sendEmail(
+// Resend OTP : POST /api/user/register/resend
+export const resendOtp = asyncHandler(async (req, res) => {
+  let { email } = req.body;
+  email = email.toLowerCase();
+
+  const pendingUser = await PendingUser.findOne({ email });
+  if (!pendingUser) {
+    return res.status(400).json({ success: false, message: "No active registration found" });
+  }
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+
+  pendingUser.otp = otp;
+  pendingUser.otpExpires = otpExpires;
+  await pendingUser.save();
+
+  await sendEmail(
+    email,
+    "New verification code - InstaBasket",
+    `Your new code is: ${otp}`,
+    `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #94dc1c;">InstaBasket Refresh</h2>
+      <p>Your new verification code is here:</p>
+      <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333; margin: 20px 0;">${otp}</div>
+      <p style="color: #666; font-size: 14px;">This code will expire in 5 minutes.</p>
+    </div>`
+  );
+
+  res.status(200).json({ success: true, message: "Fresh code sent to your inbox!" });
+});
+
+// Google Login : POST /api/user/google-login
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+
+  const googleRes = await axios.get(
+    `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${token}`
+  );
+
+  const { id: googleId, email, name, picture } = googleRes.data;
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    user = await User.create({
+      name,
       email,
-      "Your OTP Code",
-      `Your OTP is: ${otp}. It expires in 5 minutes.`,
-      `<p>Your OTP code is: <b>${otp}</b></p><p>This code expires in 5 minutes.</p>`
-    );
-
-    return res
-      .status(200)
-      .json({ success: true, message: "OTP re-sent successfully" });
-  } catch (error) {
-    console.error("Error in resendOtp:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// GOOGLE LOGIN CONTROLLER //
-export const googleLogin = async (req, res) => {
-  try {
-    const { token } = req.body;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Google token is required.",
-      });
-    }
-
-    // 1. Fetch user info from Google
-    const googleRes = await axios.get(
-      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${token}`
-    );
-
-    const { id: googleId, email, name, picture } = googleRes.data;
-
-    // 2. Check if user exists
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      // Create new user
-      user = await User.create({
-        name,
-        email,
-        googleId,
-        profileImage: picture,
-        provider: "google",
-      });
-    } else if (!user.googleId) {
-      // If user registered earlier with email/password, link Google account
-      user.googleId = googleId;
-      user.profileImage = user.profileImage || picture;
-      await user.save();
-    }
-
-    // 3. Generate JWT
-    const jwtToken = generateToken(user);
-    res.cookie("token", jwtToken, cookieOptions);
-
-    return res.status(200).json({
-      success: true,
-      message: "Google login successful.",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profileImage: user.profileImage,
-        isAdmin: user.isAdmin || false,
-      },
+      googleId,
+      profileImage: picture,
+      provider: "google",
     });
-  } catch (error) {
-    console.error("Google login error:", error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: "Google login failed. Please try again later.",
-    });
+  } else if (!user.googleId) {
+    user.googleId = googleId;
+    user.profileImage = user.profileImage || picture;
+    await user.save();
   }
-};
 
-// Login User
-export const loginUser = async (req, res) => {
-  try {
-    let { email, password } = req.body;
+  const jwtToken = generateToken(user);
+  res.cookie("token", jwtToken, cookieOptions);
 
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please fill all fields" });
-    }
+  res.status(200).json({
+    success: true,
+    message: "Google authentication successful",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      profileImage: user.profileImage,
+      isAdmin: user.isAdmin || false,
+    },
+  });
+});
 
-    email = email.toLowerCase();
+// Login User : POST /api/user/login
+export const loginUser = asyncHandler(async (req, res) => {
+  let { email, password } = req.body;
+  email = email.toLowerCase();
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid credentials" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid credentials" });
-    }
-
-    const token = generateToken(user);
-    res.cookie("token", token, cookieOptions);
-
-    return res.status(200).json({
-      success: true,
-      message: "User logged in successfully",
-      user,
-    });
-  } catch (error) {
-    console.error("Error in loginUser:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const user = await User.findOne({ email });
+  if (!user || user.provider === 'google') {
+    return res.status(401).json({ success: false, message: "Invalid credentials or login method" });
   }
-};
 
-// Logout User
-export const logoutUser = async (req, res) => {
-  try {
-    res.clearCookie("token", cookieOptions);
-    return res
-      .status(200)
-      .json({ success: true, message: "User logged out successfully" });
-  } catch (error) {
-    console.error("Error in logoutUser:", error);
-    res.status(500).json({ success: false, message: error.message });
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(401).json({ success: false, message: "Secure authentication failed" });
   }
-};
 
-// userController.js
-export const checkAuth = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
+  const token = generateToken(user);
+  res.cookie("token", token, cookieOptions);
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
+  res.status(200).json({
+    success: true,
+    message: "Welcome back!",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin || false,
+    },
+  });
+});
 
-    return res.status(200).json({
-      success: true,
-      user,
-    });
-  } catch (error) {
-    console.error("Error in checkAuth:", error.message);
-    res.status(500).json({ success: false, message: error.message });
+// Logout User : GET /api/user/logout
+export const logoutUser = asyncHandler(async (req, res) => {
+  res.clearCookie("token", cookieOptions);
+  res.status(200).json({ success: true, message: "Logout successful" });
+});
+
+// Check Auth Status : GET /api/user/auth
+export const checkAuth = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password");
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: "Account not found" });
   }
-};
 
-// This code defines a user controller for handling user authentication in a Node.js application. It includes functions for registering, logging in, logging out, and checking authentication status. The functions use bcrypt for password hashing and JWT for token generation. The code also includes error handling and validation for user input.
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});

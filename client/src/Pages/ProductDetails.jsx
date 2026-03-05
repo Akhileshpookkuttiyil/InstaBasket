@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { useAppContext } from "../Context/AppContext";
-import { Link, useParams } from "react-router-dom";
+import useProductStore from "../store/useProductStore";
+import useCartStore from "../store/useCartStore";
+import useAuthStore from "../store/useAuthStore";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import ProductCard from "../Components/ProductCard";
 import ProductDetailsSkeleton from "../Components/ProductDetailsSkeleton";
 
 const ProductDetails = () => {
-  const { products, navigate, currency, addToCart } = useAppContext();
+  const { products } = useProductStore();
+  const { addToCart } = useCartStore();
+  const { user } = useAuthStore();
+  const currency = import.meta.env.VITE_CURRENCY || "$";
+  const navigate = useNavigate();
   const { id } = useParams();
 
   const [thumbnail, setThumbnail] = useState(null);
@@ -130,14 +136,14 @@ const ProductDetails = () => {
           {/* Actions */}
           <div className="flex items-center gap-4 mt-10">
             <button
-              onClick={() => addToCart(product._id)}
+              onClick={() => addToCart(product._id, user)}
               className="w-full py-3 bg-gray-50 border border-primary hover:bg-gray-200 text-gray-800 font-medium rounded transition cursor-pointer"
             >
               Add to Cart
             </button>
             <button
               onClick={() => {
-                addToCart(product._id);
+                addToCart(product._id, user);
                 navigate("/cart");
               }}
               className="w-full py-3 bg-primary hover:border hover:bg-primary-dull text-white font-medium rounded transition cursor-pointer"

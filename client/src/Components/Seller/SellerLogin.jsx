@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useAppContext } from "../../Context/AppContext";
+import useAuthStore from "../../store/useAuthStore";
 import toast from "react-hot-toast";
-import { Link, Navigate } from "react-router-dom";
+import axios from "axios";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 
 const SellerLogin = () => {
-  const { isSeller, setIsSeller, navigate, axios } = useAppContext();
+  const { isSeller, fetchSellerStatus } = useAuthStore();
+  const navigate = useNavigate();
   // const [email, setEmail] = useState("");
   // const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ const SellerLogin = () => {
       });
 
       if (data.success) {
-        setIsSeller(true);
+        await fetchSellerStatus();
         toast.success(data.message);
         navigate("/seller/");
       } else {

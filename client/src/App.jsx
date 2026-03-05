@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Navbar from "./Components/Navbar";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Home from "./Pages/Home";
 import Footer from "./Components/Footer";
 import { Toaster } from "react-hot-toast";
-import { useAppContext } from "./Context/AppContext";
+import useAuthStore from "./store/useAuthStore";
+import useProductStore from "./store/useProductStore";
+import useCartStore from "./store/useCartStore";
 import Login from "./Components/Login";
 import AllProducts from "./Components/AllProducts";
 import Noresults from "./Components/Noresults";
@@ -22,11 +24,21 @@ import Loading from "./Components/Loading";
 import ContactPage from "./Pages/Contact";
 
 const App = () => {
-  // Determine if the current path is a seller-related page
   const isSellerPath = useLocation().pathname.includes("/seller");
+  
+  const { isSeller, showUserLogin, fetchUser, fetchSellerStatus } = useAuthStore();
+  const { fetchProducts } = useProductStore();
+  const { setCartItems } = useCartStore();
 
-  // Access context for the login modal
-  const { showUserLogin, isSeller } = useAppContext();
+  useEffect(() => {
+    const init = async () => {
+      const cartItems = await fetchUser();
+      if (cartItems) setCartItems(cartItems);
+      fetchProducts();
+      fetchSellerStatus();
+    };
+    init();
+  }, []);
 
   return (
     <div className="text-default min-h-screen text-gray-700 bg-white">

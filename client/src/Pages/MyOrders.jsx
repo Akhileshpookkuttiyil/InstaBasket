@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useAppContext } from "../Context/AppContext";
+import useAuthStore from "../store/useAuthStore";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { currency, axios, user,navigate } = useAppContext();
+  
+  const { user } = useAuthStore();
+  const currency = import.meta.env.VITE_CURRENCY || "$";
+  const navigate = useNavigate();
 
   const fetchMyOrders = async () => {
     try {
@@ -46,7 +51,7 @@ const MyOrders = () => {
     }
   };
 
-  if (loading) {
+  if (loading && user) {
     return <p className="text-center mt-20">Loading your orders...</p>;
   }
 
@@ -54,7 +59,7 @@ const MyOrders = () => {
     return <p className="text-center text-red-500 mt-20">{error}</p>;
   }
 
-  if (!orders.length) {
+  if (!orders.length || !user) {
     return (
       <div className="text-center mt-20">
         <p className="text-2xl font-medium mb-4">No orders found 🛒</p>
@@ -116,7 +121,7 @@ const MyOrders = () => {
                   <div className="flex items-center mb-4 md:mb-0 cursor-pointer">
                     <div onClick={() => {
                   navigate(
-                    `/products/${product.category.toLowerCase()}/${item.product.id}`
+                    `/products/${product?.category?.toLowerCase() || 'unknown'}/${item?.product?.id || productId}`
                   );
                   scrollTo({ top: 0, behavior: "smooth" });
                 }} className="bg-primary/10 p-4 rounded-lg">

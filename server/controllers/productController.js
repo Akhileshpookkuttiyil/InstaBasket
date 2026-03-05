@@ -1,118 +1,91 @@
-import { json } from "express";
 import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-// add product : POST /api/products
-export const addProduct = async (req, res) => {
-  try {
-    // Ensure you're using express.json() middleware in your app
-    const productData = JSON.parse(req.body.productData); // Parse the incoming JSON data
+// add product : POST /api/products/add
+export const addProduct = asyncHandler(async (req, res) => {
+  const productData = typeof req.body.productData === 'string' 
+    ? JSON.parse(req.body.productData) 
+    : req.body.productData;
 
-    // Ensure files are present before accessing
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No images uploaded",
-      });
-    }
-
-    // Get the uploaded image files
-    const productImages = req.files.map((file) => file.path);
-
-    // Upload images to Cloudinary and retrieve the URLs
-    let imagesUrls = await Promise.all(
-      productImages.map(async (image) => {
-        const result = await cloudinary.uploader.upload(image, {
-          resource_type: "image", // Image upload setting
-        });
-
-        // Return the public_id and secure_url for each image uploaded
-        return {
-          public_id: result.public_id,
-          url: result.secure_url,
-        };
-      })
-    );
-
-    // Use Product.create() to create and save the product in one step
-    const newProduct = await Product.create({
-      ...productData, // Spread the product data (e.g., name, price, etc.)
-      image: imagesUrls.map((img) => img.url), // Save the image URLs
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No images uploaded",
     });
-
-    // Send the response back to the client with the saved product
-    res.status(201).json({
-      success: true,
-      message: "Product added successfully",
-      product: newProduct,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
   }
-};
+
+  const productImages = req.files.map((file) => file.path);
+
+  const imagesUrls = await Promise.all(
+    productImages.map(async (image) => {
+      const result = await cloudinary.uploader.upload(image, {
+        resource_type: "image",
+      });
+      return result.secure_url;
+    })
+  );
+
+  const newProduct = await Product.create({
+    ...productData,
+    description: Array.isArray(productData.description) ? productData.description : productData.description.split("\n"),
+    image: imagesUrls,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Product launched successfully!",
+    product: newProduct,
+  });
+});
 
 // get all products : GET /api/products
-export const getAllProducts = async (req, res) => {
-  try {
-    
-    const products = await Product.find();
-    res.status(200).json({
-      success: true,
-      products,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
-  }
-};
+export const getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find().sort({ createdAt: -1 });
+  res.status(200).json({
+    success: true,
+    products,
+  });
+});
 
 // get single product : GET /api/products/:id
-export const getSingleProduct = async (req, res) => {
-  try {
-    const { id } = req.params; // Corrected: Use `req.params.id` to get the product ID
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-    res.status(200).json({
-      success: true,
-      product,
+export const getSingleProduct = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const product = await Product.findById(id);
+  
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found",
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
   }
-};
 
-// update stock : PUT /api/products/stock
-export const changeStock = async (req, res) => {
-  try {
-    const { id, inStock } = req.body;
+  res.status(200).json({
+    success: true,
+    product,
+  });
+});
 
-    // Find the product by ID and update the stock
-    const product = await Product.findByIdAndUpdate(
-      id,
-      { inStock },
-      { new: true }
-    );
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
+// update stock : POST /api/products/stock
+export const changeStock = asyncHandler(async (req, res) => {
+  const { id, inStock } = req.body;
 
-    res.status(200).json({
-      success: true,
-      message: "Stock updated successfully",
-      product,
+  const product = await Product.findByIdAndUpdate(
+    id,
+    { inStock },
+    { new: true }
+  );
+
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found",
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
   }
-};
+
+  res.status(200).json({
+    success: true,
+    message: `Product is now ${inStock ? 'In Stock' : 'Out of Stock'}`,
+    product,
+  });
+});

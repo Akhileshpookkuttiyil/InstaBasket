@@ -1,27 +1,29 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { useAppContext } from "../Context/AppContext";
+import useProductStore from "../store/useProductStore";
 import { categories } from "../assets/assets";
 import ProductCard from "./ProductCard";
 
 const ProductCategory = () => {
-  const { products } = useAppContext();
+  const { products } = useProductStore();
   const { category } = useParams();
 
   // Normalize the category for case-insensitive matching
   const categoryName = category?.toLowerCase();
 
   // Find the corresponding category object
-  const foundCategory = categories.find(
-    (item) => item.path.toLowerCase() === categoryName
+  const foundCategory = useMemo(() => 
+    categories.find((item) => item.path.toLowerCase() === categoryName),
+    [categoryName]
   );
 
   // Filter products by category
-const productsInCategory = products.filter(
-  (product) =>
-    typeof product.category === "string" &&
-    product.category.toLowerCase() === categoryName
-);
+  const productsInCategory = useMemo(() => 
+    products.filter((product) => 
+      typeof product.category === "string" && product.category.toLowerCase() === categoryName
+    ),
+    [products, categoryName]
+  );
 
   // Render if category not found
   if (!foundCategory) {

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { assets } from "../assets/assets";
-import { useAppContext } from "../Context/AppContext";
+import useAuthStore from "../store/useAuthStore";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 // Controlled reusable input field
@@ -27,7 +29,8 @@ const InputField = ({
 );
 
 const AddAddress = () => {
-  const { axios, user, navigate, loading } = useAppContext();
+  const { user, loading } = useAuthStore();
+  const navigate = useNavigate();
 
   const initialAddressState = {
     firstName: "",
@@ -98,7 +101,7 @@ const AddAddress = () => {
   useEffect(() => {
     if (!loading && !user) {
       toast.error("Please log in to add an address.");
-      navigate("/login");
+      navigate("/");
     }
   }, [user, loading, navigate]);
 

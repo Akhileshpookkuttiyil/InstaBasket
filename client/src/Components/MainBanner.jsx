@@ -1,11 +1,10 @@
 import React, { memo } from "react";
 import styles from "./MainBanner.module.css";
 import { assets } from "../assets/assets";
-import { Link } from "react-router-dom";
-import { useAppContext } from "../Context/AppContext";
+import { Link, useNavigate } from "react-router-dom";
 
 const MainBanner = memo(() => {
-  const { navigate } = useAppContext();
+  const navigate = useNavigate();
   return (
     <div className="relative">
       {/* Banner Images with srcset */}

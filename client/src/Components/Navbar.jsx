@@ -1,45 +1,48 @@
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
-import { useAppContext } from "../Context/AppContext";
-import toast from "react-hot-toast";
+import useAuthStore from "../store/useAuthStore";
+import useCartStore from "../store/useCartStore";
+import useProductStore from "../store/useProductStore";
 
 const Navbar = () => {
-  const [menuOpen, setMenuOpen] = useState(false); // State for mobile menu
-  const {
-    user,
-    setUser,
-    setshowUserLogin,
-    setCartItems,
-    navigate,
-    searchQuery,
-    setsearchQuery,
-    getCartCount,
-    axios,
-    loading,
-  } = useAppContext();
+  const [menuOpen, setMenuOpen] = useState(false);
+  
+  const { 
+    user, 
+    setUser, 
+    setshowUserLogin, 
+    logout,
+    loading 
+  } = useAuthStore();
+  
+  const { 
+    getCartCount, 
+    setCartItems 
+  } = useCartStore();
+  
+  const { 
+    searchQuery, 
+    setsearchQuery 
+  } = useProductStore();
+  
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      if (window.confirm("Are you sure you want to log out?")) {
-        const { data } = await axios.get("/api/user/logout");
-        if (data.success) {
-          toast.success(data.message);
-          setUser(null);
-          setCartItems([]);
-          navigate("/");
-        } else {
-          toast.error(data.message);
-        }
+    if (window.confirm("Are you sure you want to log out?")) {
+      const success = await logout();
+      if (success) {
+        setCartItems({});
+        navigate("/");
       }
-    } catch (error) {
-      toast.error(error.message);
     }
   };
 
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
-      navigate("/products"); // Navigate to products page on search query
+      if (window.location.pathname !== "/products") {
+        navigate("/products");
+      }
     }
   }, [searchQuery, navigate]);
 
@@ -235,7 +238,7 @@ const Navbar = () => {
             alt="Cart Icon"
             className="w-6 opacity-80"
           />
-          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full">
+          <span className="absolute -top-2 -right-3 text-xs text-white bg-primary w-[18px] h-[18px] rounded-full flex items-center justify-center">
             {getCartCount() || 0}
           </span>
         </button>

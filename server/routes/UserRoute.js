@@ -10,6 +10,8 @@ import {
   verifyUser,
 } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
+import validate from "../middlewares/validate.js";
+import { registerSchema, loginSchema, otpSchema, emailSchema } from "../schemas/authSchema.js";
 import rateLimit from "express-rate-limit";
 
 const otpLimiter = rateLimit({
@@ -20,12 +22,12 @@ const otpLimiter = rateLimit({
 const userRouter = express.Router();
 
 //desc    Register a new user
-userRouter.post("/register/initiate", otpLimiter, initiateUser);
-userRouter.post("/register/verify", verifyUser);
-userRouter.post("/register/resend", otpLimiter, resendOtp);
+userRouter.post("/register/initiate", otpLimiter, validate(registerSchema), initiateUser);
+userRouter.post("/register/verify", validate(otpSchema), verifyUser);
+userRouter.post("/register/resend", otpLimiter, validate(emailSchema), resendOtp);
 
 //desc    Log in an existing user
-userRouter.post("/login", loginUser);
+userRouter.post("/login", validate(loginSchema), loginUser);
 
 userRouter.post("/google-login", googleLogin);
 

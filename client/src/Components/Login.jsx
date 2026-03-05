@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { useAppContext } from "../Context/AppContext";
+import useAuthStore from "../store/useAuthStore";
+import useCartStore from "../store/useCartStore";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import toast from "react-hot-toast";
 import OtpVerificationForm from "./OtpVerificationForm";
 import { useGoogleLogin } from "@react-oauth/google";
 
 const Login = () => {
-  const { setshowUserLogin, axios, setUser, navigate, setCartItems } =
-    useAppContext();
+  const { setshowUserLogin, setUser } = useAuthStore();
+  const { setCartItems } = useCartStore();
+  const navigate = useNavigate();
 
   const [state, setState] = useState("login"); // 'login' | 'register-init' | 'register-verify'
   const [email, setEmail] = useState("");
@@ -73,7 +77,7 @@ const Login = () => {
       if (data.success) {
         toast.success("Verification successful!");
         setUser(data.user);
-        setCartItems(data.user.cartItems || []);
+        setCartItems(data.user.cartItems || {});
         setshowUserLogin(false);
         navigate("/");
       } else {
@@ -96,11 +100,13 @@ const Login = () => {
         if (data.success) {
           toast.success(data.message);
           setUser(data.user);
-          setCartItems(data.user.cartItems || []);
+          setCartItems(data.user.cartItems || {});
           navigate("/");
           setshowUserLogin(false);
           window.location.reload();
-        } else toast.error(data.message);
+        } else {
+          toast.error(data.message);
+        }
       } else if (state === "register-init") {
         const { data } = await axios.post("/api/user/register/initiate", {
           name,
@@ -110,7 +116,9 @@ const Login = () => {
         if (data.success) {
           toast.success("OTP sent to your email.");
           setState("register-verify");
-        } else toast.error(data.message);
+        } else {
+          toast.error(data.message);
+        }
       }
     } catch (err) {
       const message =
@@ -209,20 +217,7 @@ const Login = () => {
           >
             {state === "login" ? "Login" : "Continue"}
           </button>
-          <div className="w-full">
-            <button
-              onClick={loginWithGoogle}
-              aria-label="Sign in with Google"
-              className="h-8 w-full flex items-center justify-center gap-2 px-4 border border-primary-dull rounded-md text-sm font-medium text-gray-800 bg-white shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <img
-                src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
-                alt=""
-                className="h-5 w-5"
-              />
-              <span>Sign in with Google</span>
-            </button>
-          </div>
+          
         </form>
       )}
     </div>

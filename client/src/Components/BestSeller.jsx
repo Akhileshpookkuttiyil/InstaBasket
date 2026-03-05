@@ -1,9 +1,9 @@
 import React from "react";
 import ProductCard from "./ProductCard";
-import { useAppContext } from "../Context/AppContext";
+import useProductStore from "../store/useProductStore";
 
 const BestSeller = () => {
-  const { products } = useAppContext();
+  const { products } = useProductStore();
 
   return (
     <div className="mt-16 px-4">

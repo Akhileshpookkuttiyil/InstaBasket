@@ -1,10 +1,9 @@
 import React from "react";
-import { useAppContext } from "../Context/AppContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 const Loading = () => {
-  const { navigate } = useAppContext();
+  const navigate = useNavigate();
   let { search } = useLocation();
   const query = new URLSearchParams(search);
   const nexturl = query.get("next");
@@ -15,7 +14,7 @@ const Loading = () => {
         navigate(`/${nexturl}`);
       }, 3000);
     }
-  }, [nexturl]);
+  }, [nexturl, navigate]);
 
   return (
     <div className="flex items-center justify-center h-screen">

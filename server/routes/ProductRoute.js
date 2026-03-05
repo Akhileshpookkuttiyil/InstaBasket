@@ -7,13 +7,29 @@ import {
   getAllProducts,
   getSingleProduct,
 } from "../controllers/productController.js";
+import validate from "../middlewares/validate.js";
+import { addProductSchema, changeStockSchema } from "../schemas/productSchema.js";
 
 const productRouter = express.Router();
 
 // POST route to add a product
-productRouter.post("/add", upload.array("images"), authSeller, addProduct); // 'images' is the field name for the uploaded files
-productRouter.get("/all", getAllProducts); // Added route to get all products
-productRouter.get("/:id", authSeller, getSingleProduct); // Added route to get a single product by ID
-productRouter.post("/stock", authSeller, changeStock); // Added route to update a product by ID
+productRouter.post(
+  "/add",
+  upload.array("images"),
+  authSeller,
+  validate(addProductSchema),
+  addProduct
+);
+
+productRouter.get("/all", getAllProducts);
+
+productRouter.get("/:id", authSeller, getSingleProduct);
+
+productRouter.post(
+  "/stock",
+  authSeller,
+  validate(changeStockSchema),
+  changeStock
+);
 
 export default productRouter;

@@ -1,13 +1,18 @@
 import React from "react";
 import { assets } from "../assets/assets";
-import { useAppContext } from "../Context/AppContext";
+import { useNavigate } from "react-router-dom";
+import useCartStore from "../store/useCartStore";
+import useAuthStore from "../store/useAuthStore";
 
 const ProductCard = ({ product }) => {
-  const { navigate } = useAppContext();
-  const { currency, addToCart, removeFromCart, cartItems } = useAppContext();
-  if (!product) return null; // Prevent errors if product is undefined
+  const navigate = useNavigate();
+  const { addToCart, removeFromCart, cartItems } = useCartStore();
+  const { user } = useAuthStore();
+  const currency = import.meta.env.VITE_CURRENCY || "$";
 
-  const itemQuantity = cartItems?.[product._id] || 0; // Avoid undefined errors
+  if (!product) return null;
+
+  const itemQuantity = cartItems?.[product._id] || 0;
 
   return (
     <div
@@ -63,7 +68,7 @@ const ProductCard = ({ product }) => {
                 className="group flex items-center justify-center gap-2 px-4 py-2 bg-primary/25 hover:bg-primary-dark transition-all duration-300 rounded-md text-white cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  addToCart(product._id);
+                  addToCart(product._id, user);
                 }}
               >
                 <img className="w-4" src={assets.cart_icon} alt="cart icon" />
@@ -76,7 +81,7 @@ const ProductCard = ({ product }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeFromCart(product._id);
+                    removeFromCart(product._id, user);
                   }}
                   className="cursor-pointer text-md px-2 h-full"
                 >
@@ -86,7 +91,7 @@ const ProductCard = ({ product }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    addToCart(product._id);
+                    addToCart(product._id, user);
                   }}
                   className="cursor-pointer text-md px-2 h-full"
                 >

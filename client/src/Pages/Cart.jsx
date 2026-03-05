@@ -1,22 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useAppContext } from "../Context/AppContext";
+import useAuthStore from "../store/useAuthStore";
+import useCartStore from "../store/useCartStore";
+import useProductStore from "../store/useProductStore";
 import { assets } from "../assets/assets";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 const Cart = () => {
+  const { user } = useAuthStore();
+  const { products } = useProductStore();
   const {
-    products,
-    currency,
     cartItems,
     setCartItems,
     removeFromCart,
     updateCartItem,
     getCartCount,
     getCartAmount,
-    navigate,
-    axios,
-    user,
-  } = useAppContext();
+  } = useCartStore();
+  
+  const navigate = useNavigate();
+  const currency = import.meta.env.VITE_CURRENCY || "$";
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -40,8 +44,9 @@ const Cart = () => {
       .filter(Boolean);
   }, [cartItems, products]);
 
-  const tax = useMemo(() => getCartAmount() * 0.02, [cartItems]);
-  const total = useMemo(() => getCartAmount() + tax, [tax]);
+  const cartAmount = useMemo(() => getCartAmount(products), [cartItems, products]);
+  const tax = useMemo(() => cartAmount * 0.02, [cartAmount]);
+  const total = useMemo(() => cartAmount + tax, [cartAmount, tax]);
 
   useEffect(() => {
     if (user) fetchAddresses();
@@ -190,7 +195,7 @@ const Cart = () => {
                     className="border border-gray-200 outline-none rounded px-2 py-1"
                     value={cartItems[product._id]}
                     onChange={(e) =>
-                      updateCartItem(product._id, Number(e.target.value))
+                      updateCartItem(product._id, Number(e.target.value), user)
                     }
                   >
                     {Array.from(
@@ -217,7 +222,7 @@ const Cart = () => {
             </p>
 
             <button
-              onClick={() => removeFromCart(product._id)}
+              onClick={() => removeFromCart(product._id, user)}
               className="mx-auto"
             >
               <img src={assets.remove_icon} alt="remove" className="w-6 h-6" />
@@ -305,7 +310,7 @@ const Cart = () => {
             <span>Price</span>
             <span>
               {currency}
-              {getCartAmount().toFixed(2)}
+              {cartAmount.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between">

@@ -34,6 +34,9 @@ app.get("/", (req, res) => {
   res.send("Hello, World!");
 });
 
+import errorHandler from "./middlewares/errorHandler.js";
+
+// Routes
 app.use("/api/user", userRouter);
 app.use("/api/seller", sellerRouter);
 app.use("/api/products", productRouter);
@@ -41,13 +44,9 @@ app.use("/api/cart", cartRouter);
 app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 
-// Basic error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something went wrong!");
-});
+// Global Error Handler
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-// This code sets up an Express server that connects to a MongoDB database using Mongoose. It uses middleware for JSON parsing, cookie parsing, and CORS handling. The server listens on a specified port and responds with "Hello, World!" when the root URL is accessed.

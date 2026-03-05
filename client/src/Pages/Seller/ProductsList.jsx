@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useAppContext } from "../../Context/AppContext";
+import useProductStore from "../../store/useProductStore";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 const ProductsList = () => {
-  const { products, currency, axios, fetchProducts } = useAppContext();
+  const { products, fetchProducts } = useProductStore();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const currency = import.meta.env.VITE_CURRENCY || "$";
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -102,7 +104,7 @@ const ProductsList = () => {
                           className="sr-only peer"
                           readOnly
                         />
-                        <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200"></div>
+                        <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-emerald-600 transition-colors duration-200"></div>
                         <span className="dot absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5"></span>
                       </label>
                     </td>

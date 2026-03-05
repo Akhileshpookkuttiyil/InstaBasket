@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useAppContext } from "../../Context/AppContext";
 import { assets } from "../../assets/assets";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 // Map currency symbols to ISO currency codes
@@ -24,7 +24,7 @@ const symbolToCodeMap = {
 };
 
 const Orders = () => {
-  const { currency: currencySymbol, axios } = useAppContext(); // Still using the symbol from .env
+  const currencySymbol = import.meta.env.VITE_CURRENCY || "$";
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 

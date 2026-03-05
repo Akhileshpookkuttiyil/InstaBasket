@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { assets, categories } from "../../assets/assets";
-import { useAppContext } from "../../Context/AppContext";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 const initialFormData = {
@@ -15,7 +15,6 @@ const initialFormData = {
 const AddProducts = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [files, setFiles] = useState([]);
-  const { axios } = useAppContext();
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;

@@ -1,62 +1,38 @@
-// add address : POST /api/address/add
-
 import Address from "../models/Address.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-export const addAddress = async (req, res) => {
-  try {
-    const { address } = req.body;
+// add address : POST /api/address/add
+export const addAddress = asyncHandler(async (req, res) => {
+  const { address } = req.body;
+  const userId = req.user.id;
 
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized access.",
-      });
-    }
+  const createdAddress = await Address.create({
+    firstName: address.firstName,
+    lastName: address.lastName,
+    email: address.email,
+    street: address.street,
+    city: address.city,
+    state: address.state,
+    zipcode: address.zipCode,
+    country: address.country,
+    phone: address.phone,
+    userId,
+  });
 
-    if (!address || !address.firstName || !address.street || !address.zipCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required address fields.",
-      });
-    }
-
-    const newAddress = {
-      firstName: address.firstName,
-      lastName: address.lastName,
-      email: address.email,
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      zipcode: address.zipCode,
-      country: address.country,
-      phone: address.phone,
-      userId: req.user.id,
-    };
-
-    const createdAddress = await Address.create(newAddress);
-
-    res.status(201).json({
-      success: true,
-      message: "Address added successfully",
-      address: createdAddress,
-    });
-  } catch (error) {
-    console.error(error); // log full error for debugging
-    res.status(500).json({ message: error.message });
-  }
-};
+  res.status(201).json({
+    success: true,
+    message: "Shipping address saved",
+    address: createdAddress,
+  });
+});
 
 // get all address : GET /api/address/get
-export const getAllAddress = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const addresses = await Address.find({ userId });
-    res.status(200).json({
-      success: true,
-      addresses,
-    });
-  } catch (error) {
-    console.log(error.message);
-    res.status(500).json({ message: error.message });
-  }
-};
+export const getAllAddress = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const addresses = await Address.find({ userId }).sort({ createdAt: -1 });
+  
+  res.status(200).json({
+    success: true,
+    addresses,
+  });
+});

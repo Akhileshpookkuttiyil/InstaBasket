@@ -1,11 +1,13 @@
 import React from "react";
-import { useAppContext } from "../../Context/AppContext";
 import { assets } from "../../assets/assets";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import useAuthStore from "../../store/useAuthStore";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 const SellerLayout = () => {
-  const { axios, navigate } = useAppContext();
+  const navigate = useNavigate();
+  const { fetchSellerStatus } = useAuthStore();
 
   const sidebarLinks = [
     { name: "Add Product", path: "/seller", icon: assets.add_icon },
@@ -22,7 +24,8 @@ const SellerLayout = () => {
       const { data } = await axios.get("/api/seller/logout");
       if (data.success) {
         toast.success(data.message);
-        navigate("/");
+        fetchSellerStatus(); // update auth store
+        navigate("/seller");
       } else {
         toast.error(data.message);
       }

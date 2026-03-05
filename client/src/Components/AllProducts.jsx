@@ -1,38 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { useAppContext } from "../Context/AppContext";
+import React, { useMemo } from "react";
+import useProductStore from "../store/useProductStore";
 import ProductCard from "./ProductCard";
 import ProductSkeleton from "./ProductSkeleton";
 
 const AllProducts = () => {
-  const { products, searchQuery } = useAppContext();
+  const { products, searchQuery, loading } = useProductStore();
 
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!products || products.length === 0) return;
-
-    try {
-      const filtered = searchQuery
-        ? products.filter((product) =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        : products;
-
-      setFilteredProducts(filtered);
-      setLoading(false);
-    } catch {
-      setError("Failed to load products.");
-      setLoading(false);
-    }
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch = searchQuery
+        ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      return matchesSearch && product.inStock;
+    });
   }, [products, searchQuery]);
-
-  if (error) {
-    return <p className="text-center text-red-500 mt-10 px-4">{error}</p>;
-  }
-
-  const inStockProducts = filteredProducts.filter((product) => product.inStock);
 
   return (
     <div className="mt-16 px-4 sm:px-6 lg:px-12">
@@ -50,13 +31,13 @@ const AllProducts = () => {
           Array.from({ length: 10 }).map((_, index) => (
             <ProductSkeleton key={index} />
           ))
-        ) : inStockProducts.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="col-span-full text-center text-gray-500 mt-10">
-            No products found.
+            No products found for "{searchQuery}".
           </div>
         ) : (
-          inStockProducts.map((product, index) => (
-            <ProductCard key={index} product={product} />
+          filteredProducts.map((product) => (
+            <ProductCard key={product._id} product={product} />
           ))
         )}
       </div>
