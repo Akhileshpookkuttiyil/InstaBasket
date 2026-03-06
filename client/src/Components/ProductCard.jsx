@@ -13,6 +13,11 @@ const ProductCard = ({ product }) => {
   if (!product) return null;
 
   const itemQuantity = cartItems?.[product._id] || 0;
+  const mrp = Number(product?.price || 0);
+  const offer = Number(product?.offerPrice || 0);
+  const discountPercent =
+    mrp > offer && mrp > 0 ? Math.round(((mrp - offer) / mrp) * 100) : 0;
+  const rating = Number(product?.rating || 4);
 
   return (
     <div
@@ -24,76 +29,105 @@ const ProductCard = ({ product }) => {
         );
         scrollTo({ top: 0, behavior: "smooth" });
       }}
-      className="border border-gray-500/20 rounded-md bg-white w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto px-2.5 py-2"
+      className="group relative w-full mx-auto overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
     >
-      <div className="group cursor-pointer flex items-center justify-center px-2">
+      <div className="relative h-44 sm:h-48 bg-gradient-to-b from-gray-50 to-white p-3 flex items-center justify-center">
+        {discountPercent > 0 && (
+          <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-gray-900">
+            {discountPercent}% OFF
+          </span>
+        )}
+        {!product?.inStock && (
+          <span className="absolute right-3 top-3 z-10 rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-medium text-white">
+            Out of stock
+          </span>
+        )}
         <img
-          className="group-hover:scale-105 transition w-full h-[150px] object-contain"
+          className="relative z-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
           src={product?.image?.[0]}
           alt={product?.name || "Product"}
+          onError={(e) => {
+            e.currentTarget.src = assets.fallback_image;
+          }}
         />
       </div>
-      <div className="text-gray-500/60 text-sm">
-        <p>{product.category}</p>
-        <p className="text-gray-700 font-medium text-lg truncate w-full">
-          {product.name}
-        </p>
-        <div className="flex items-center gap-0.5">
+
+      <div className="space-y-3 p-3.5">
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-wide text-gray-500">
+            {product.category}
+          </p>
+          <p className="min-h-[44px] overflow-hidden text-[15px] font-semibold leading-[1.35] text-gray-800">
+            {product.name}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-0.5 text-xs text-gray-500">
           {Array(5)
             .fill("")
             .map((_, i) => (
               <img
                 key={i}
-                className="md:w-3.5 w-3"
-                src={i < 4 ? assets.star_icon : assets.star_dull_icon}
+                className="w-3.5"
+                src={i < Math.round(rating) ? assets.star_icon : assets.star_dull_icon}
                 alt="rating"
               />
             ))}
-          <p>({4})</p>
+          <p className="ml-1">({rating.toFixed(1)})</p>
         </div>
-        <div className="flex items-end justify-between mt-3">
-          <p className="md:text-xl text-base font-medium text-primary flex flex-col md:flex-row gap-1">
-            <span className="text-gray-500/60 md:text-sm text-xs line-through md:ml-1 mt-1 md:mt-0">
-              {currency} {product.price}
-            </span>
-            <span>
-              {currency}
-              {product.offerPrice}
-            </span>
-          </p>
 
-          <div className="text-primary">
-            {!itemQuantity ? (
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-gray-900">
+              {currency} {offer}
+            </span>
+            {mrp > 0 && (
+              <span className="text-xs text-gray-500 line-through">
+                {currency} {mrp}
+              </span>
+            )}
+          </div>
+
+          <div onClick={(e) => e.stopPropagation()} className="text-primary">
+            {!itemQuantity ? (product?.inStock ? (
               <button
-                className="group flex items-center justify-center gap-2 px-4 py-2 bg-primary/25 hover:bg-primary-dark transition-all duration-300 rounded-md text-white cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dull"
+                onClick={() => {
                   addToCart(product._id, user);
                 }}
               >
-                <img className="w-4" src={assets.cart_icon} alt="cart icon" />
-                <span className="group-hover:scale-105 transition-transform duration-300 text-primary-dull">
-                  Add
-                </span>
+                <img
+                  className="w-3.5 brightness-0 invert"
+                  src={assets.cart_icon}
+                  alt="cart icon"
+                />
+                <span>Add</span>
               </button>
             ) : (
-              <div className="flex items-center justify-center gap-2 md:w-20 w-16 h-[34px] bg-primary/25 rounded select-none">
+              <button
+                className="rounded-md border border-gray-300 bg-gray-100 px-3.5 py-2 text-sm font-medium text-gray-500 cursor-not-allowed"
+                disabled
+              >
+                Unavailable
+              </button>
+            )) : (
+              <div className="flex h-[34px] items-center overflow-hidden rounded-md border border-primary/35 bg-primary/10 select-none">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     removeFromCart(product._id, user);
                   }}
-                  className="cursor-pointer text-md px-2 h-full"
+                  className="h-full px-2.5 text-base font-semibold hover:bg-primary/20"
                 >
                   -
                 </button>
-                <span className="w-5 text-center">{itemQuantity}</span>
+                <span className="min-w-8 text-center text-sm font-semibold text-gray-800">
+                  {itemQuantity}
+                </span>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     addToCart(product._id, user);
                   }}
-                  className="cursor-pointer text-md px-2 h-full"
+                  className="h-full px-2.5 text-base font-semibold hover:bg-primary/20"
                 >
                   +
                 </button>

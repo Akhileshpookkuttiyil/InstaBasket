@@ -76,11 +76,12 @@ const Cart = () => {
     if (!selectedPaymentMethod) return toast.error("Select a payment method.");
 
     const invalidItem = cartArray.find(
-      (item) => item.quantity > (item.countInStock || 0)
+      (item) => item.quantity > (item.stock ?? item.countInStock ?? 0)
     );
     if (invalidItem) {
+      const maxStock = invalidItem.stock ?? invalidItem.countInStock ?? 0;
       return toast.error(
-        `"${invalidItem.name}" exceeds available stock (${invalidItem.countInStock} max)`
+        `"${invalidItem.name}" exceeds available stock (${maxStock} max)`
       );
     }
 

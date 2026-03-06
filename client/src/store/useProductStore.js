@@ -8,6 +8,7 @@ const useProductStore = create((set) => ({
   loading: false,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setsearchQuery: (query) => set({ searchQuery: query }),
 
   fetchProducts: async () => {
     set({ loading: true });
