@@ -1,131 +1,268 @@
-import React, { useEffect, useState } from "react";
-import { assets } from "../../assets/assets";
-import axios from "axios";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import apiClient from "../../shared/lib/apiClient";
 
-// Map currency symbols to ISO currency codes
-const symbolToCodeMap = {
-  "₹": "INR",
-  $: "USD", // could be used for USD or others
-  "€": "EUR",
-  "£": "GBP",
-  "¥": "JPY",
-  "₽": "RUB",
-  "₩": "KRW",
-  "₺": "TRY",
-  R$: "BRL",
-  C$: "CAD",
-  A$: "AUD",
-  "₦": "NGN",
-  "د.إ": "AED",
-  "﷼": "SAR",
-  S$: "SGD",
-  NZ$: "NZD",
+const ORDER_STATUSES = [
+  "order placed",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+];
+
+const formatAddress = (shippingAddress) => {
+  if (!shippingAddress) return "N/A";
+  if (typeof shippingAddress === "string") return shippingAddress;
+
+  return [
+    shippingAddress.street,
+    shippingAddress.city,
+    shippingAddress.state,
+    shippingAddress.zipcode || shippingAddress.postalCode,
+    shippingAddress.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
 };
 
 const Orders = () => {
-  const currencySymbol = import.meta.env.VITE_CURRENCY || "$";
+  const currency = import.meta.env.VITE_CURRENCY || "$";
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusUpdatingId, setStatusUpdatingId] = useState("");
+  const [filters, setFilters] = useState({
+    q: "",
+    status: "",
+    paymentMethod: "",
+    dateFrom: "",
+    dateTo: "",
+  });
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("/api/order/seller");
+      const { data } = await apiClient.get("/api/seller/orders", {
+        params: {
+          ...filters,
+          q: filters.q || undefined,
+          status: filters.status || undefined,
+          paymentMethod: filters.paymentMethod || undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined,
+        },
+      });
+
       if (data.success) {
-        console.log("Fetched orders:", data.orders);
-        setOrders(data.orders);
+        setOrders(data.orders || []);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to fetch orders");
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message || "Failed to fetch orders");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchOrders();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [filters]);
 
-  // Format currency using code derived from symbol
-  const formatCurrency = (amount) => {
-    const code = symbolToCodeMap[currencySymbol] || "USD"; // fallback to USD if unknown
+  const updateStatus = async (orderId, orderStatus) => {
     try {
-      return new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: code,
-      }).format(amount);
-    } catch (e) {
-      console.error("Invalid currency formatting:", e);
-      return `${currencySymbol}${amount}`;
+      setStatusUpdatingId(orderId);
+      const { data } = await apiClient.patch(`/api/seller/orders/${orderId}/status`, {
+        orderStatus,
+      });
+      if (data.success) {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order._id === orderId ? { ...order, orderStatus } : order
+          )
+        );
+        toast.success("Order status updated");
+      } else {
+        toast.error(data.message || "Update failed");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Update failed");
+    } finally {
+      setStatusUpdatingId("");
     }
   };
 
-  return (
-    <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll">
-      <div className="md:p-10 p-4 space-y-4">
-        <h2 className="text-lg font-medium">Orders List</h2>
+  const totals = useMemo(() => {
+    return orders.reduce(
+      (acc, order) => {
+        acc.orders += 1;
+        acc.revenue += Number(order.totalAmount || 0);
+        return acc;
+      },
+      { orders: 0, revenue: 0 }
+    );
+  }, [orders]);
 
+  return (
+    <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="text-xl font-semibold text-gray-800">Orders Management</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Filter orders by date, payment method, and status. Update delivery status
+          directly.
+        </p>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+          <input
+            type="text"
+            placeholder="Search order/user"
+            value={filters.q}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, q: e.target.value }))
+            }
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary md:col-span-2"
+          />
+          <input
+            type="date"
+            value={filters.dateFrom}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
+            }
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <input
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
+            }
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <select
+            value={filters.paymentMethod}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))
+            }
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+          >
+            <option value="">All Payments</option>
+            <option value="COD">COD</option>
+            <option value="Online">Online</option>
+          </select>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <select
+            value={filters.status}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, status: e.target.value }))
+            }
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+          >
+            <option value="">All Statuses</option>
+            {ORDER_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
+            <p className="text-gray-500">Filtered Orders</p>
+            <p className="font-semibold text-gray-800">{totals.orders}</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
+            <p className="text-gray-500">Filtered Revenue</p>
+            <p className="font-semibold text-gray-800">
+              {currency}
+              {totals.revenue.toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-3">
         {loading ? (
-          <p className="text-gray-500">Loading orders...</p>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
+            Loading orders...
+          </div>
         ) : orders.length === 0 ? (
-          <p className="text-gray-500">No orders found.</p>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
+            No orders found.
+          </div>
         ) : (
           orders.map((order) => (
             <div
               key={order._id}
-              className="flex flex-col md:items-center md:flex-row gap-5 justify-between p-5 max-w-4xl rounded-md border border-gray-300"
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
             >
-              <div className="flex gap-5 max-w-80">
-                <img
-                  className="w-12 h-12 object-cover"
-                  src={assets.box_icon}
-                  alt="Order Box Icon"
-                  loading="lazy"
-                />
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
                 <div>
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="flex flex-col">
-                      <p className="font-medium">
-                        {item.product.name}{" "}
-                        <span className="text-primary">x {item.quantity}</span>
-                      </p>
-                    </div>
-                  ))}
+                  <p className="text-xs uppercase text-gray-500">Order</p>
+                  <p className="font-semibold text-gray-800">
+                    #{String(order._id).slice(-8).toUpperCase()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(order.createdAt).toLocaleString()}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Customer</p>
+                  <p className="font-medium text-gray-800">
+                    {order.userId?.name || "Unknown"}
+                  </p>
+                  <p className="text-xs text-gray-500">{order.userId?.email || "N/A"}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {formatAddress(order.shippingAddress)}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Payment</p>
+                  <p className="text-sm text-gray-700">
+                    Method: <span className="font-medium">{order.paymentMethod}</span>
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    Payment:{" "}
+                    <span className="font-medium">
+                      {order.isPaid ? "Paid" : "Pending"}
+                    </span>
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {currency}
+                    {Number(order.totalAmount || 0).toLocaleString()}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Status</p>
+                  <select
+                    value={order.orderStatus}
+                    onChange={(e) => updateStatus(order._id, e.target.value)}
+                    disabled={statusUpdatingId === order._id}
+                    className="mt-1 w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-60"
+                  >
+                    {ORDER_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              <div className="text-sm md:text-base text-black/60">
-                <p className="text-black/80">
-                  {order.shippingAddress.firstName}{" "}
-                  {order.shippingAddress.lastName}
-                </p>
-                <p>
-                  {order.shippingAddress.street}, {order.shippingAddress.city}
-                </p>
-                <p>
-                  {order.shippingAddress.state}, {order.shippingAddress.zipcode}
-                  , {order.shippingAddress.country}
-                </p>
-                <p>{order.shippingAddress.phone}</p>
-              </div>
-
-              <p className="font-medium text-lg my-auto">
-                {formatCurrency(order.totalAmount)}
-              </p>
-
-              <div className="flex flex-col text-sm md:text-base text-black/60">
-                <p>Method: {order.paymentMethod}</p>
-                <p>
-                  Date:{" "}
-                  {new Intl.DateTimeFormat("en-US", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(new Date(order.createdAt))}
-                </p>
-                <p>Payment: {order.isPaid ? "Paid" : "Pending"}</p>
+              <div className="mt-3 rounded-lg bg-gray-50 p-3">
+                <p className="text-xs uppercase text-gray-500">Items</p>
+                <div className="mt-2 space-y-1 text-sm text-gray-700">
+                  {(order.items || []).map((item) => (
+                    <p key={item._id || item.product?._id}>
+                      {item.product?.name || "Unknown Product"} x {item.quantity}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           ))

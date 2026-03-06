@@ -3,25 +3,27 @@ import { assets } from "../../assets/assets";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import toast from "react-hot-toast";
-import axios from "axios";
+import apiClient from "../../shared/lib/apiClient";
 
 const SellerLayout = () => {
   const navigate = useNavigate();
   const { fetchSellerStatus } = useAuthStore();
 
   const sidebarLinks = [
-    { name: "Add Product", path: "/seller", icon: assets.add_icon },
+    { name: "Dashboard", path: "/seller", icon: assets.trust_icon },
+    { name: "Add Product", path: "/seller/add-product", icon: assets.add_icon },
     {
-      name: "Product List",
+      name: "Products",
       path: "/seller/product-list",
       icon: assets.product_list_icon,
     },
     { name: "Orders", path: "/seller/orders", icon: assets.order_icon },
+    { name: "Users", path: "/seller/users", icon: assets.profile_icon },
   ];
 
   const handleLogout = async () => {
     try {
-      const { data } = await axios.get("/api/seller/logout");
+      const { data } = await apiClient.get("/api/seller/logout");
       if (data.success) {
         toast.success(data.message);
         fetchSellerStatus(); // update auth store
@@ -30,14 +32,14 @@ const SellerLayout = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
   return (
     <>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 md:px-8 border-b border-gray-300 py-3 bg-white">
+      <header className="flex items-center justify-between px-4 md:px-8 border-b border-gray-200 py-3 bg-white">
         <Link to="/">
           <img
             src={assets.logo}
@@ -46,10 +48,10 @@ const SellerLayout = () => {
           />
         </Link>
         <div className="flex items-center gap-5 text-gray-500">
-          <p>Hi! Admin</p>
+          <p className="hidden md:block text-sm">Seller Panel</p>
           <button
             onClick={handleLogout}
-            className="border rounded-full text-sm px-4 py-1"
+            className="rounded-full border border-gray-300 text-sm px-4 py-1 hover:bg-gray-50"
             aria-label="Logout from Seller Dashboard"
           >
             Logout
@@ -58,23 +60,23 @@ const SellerLayout = () => {
       </header>
 
       {/* Sidebar & Content */}
-      <div className="flex">
+      <div className="flex bg-gray-50/60">
         {/* Sidebar */}
-        <nav className="md:w-64 w-16 border-r h-[95vh] border-gray-300 pt-4 flex flex-col">
+        <nav className="md:w-64 w-16 border-r h-[95vh] border-gray-200 bg-white pt-4 flex flex-col">
           {sidebarLinks.map(({ name, path, icon }) => (
             <NavLink
               to={path}
               key={name}
               end={path === "/seller"}
               className={({ isActive }) =>
-                `flex items-center py-3 px-4 gap-3 ${
+                `mx-2 mb-1 flex items-center rounded-lg py-2.5 px-3 gap-3 ${
                   isActive
-                    ? "border-r-4 md:border-r-[6px] bg-primary/10 border-primary text-primary"
-                    : "hover:bg-gray-100/90"
+                    ? "bg-primary/15 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-100"
                 }`
               }
             >
-              <img src={icon} alt={`${name} icon`} className="w-7 h-7" />
+              <img src={icon} alt={`${name} icon`} className="w-6 h-6 object-contain" />
               <p className="md:block hidden">{name}</p>
             </NavLink>
           ))}

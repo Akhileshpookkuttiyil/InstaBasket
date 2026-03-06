@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import useAuthStore from "../../store/useAuthStore";
 import toast from "react-hot-toast";
-import axios from "axios";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import apiClient from "../../shared/lib/apiClient";
 
 const SellerLogin = () => {
   const { isSeller, fetchSellerStatus } = useAuthStore();
@@ -17,7 +17,7 @@ const SellerLogin = () => {
     event.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("/api/seller/login", {
+      const { data } = await apiClient.post("/api/seller/login", {
         email,
         password,
       });

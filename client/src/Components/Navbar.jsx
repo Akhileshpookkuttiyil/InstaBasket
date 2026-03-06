@@ -10,7 +10,7 @@ const Navbar = () => {
   
   const { 
     user, 
-    setUser, 
+    
     setshowUserLogin, 
     logout,
     loading 
@@ -111,7 +111,7 @@ const Navbar = () => {
               onClick={() => setsearchQuery("")}
               className="text-sm text-gray-500 hover:text-primary"
             >
-              ✕
+              x
             </button>
           ) : (
             <button aria-label="Search for products">

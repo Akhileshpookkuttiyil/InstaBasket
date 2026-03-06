@@ -1,27 +1,12 @@
-import { createContext, useState, useContext, useEffect } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
-
-// Environment variable safety checks
-if (!import.meta.env.VITE_BASE_URL) {
-  console.warn("VITE_BASE_URL is not defined in your .env file.");
-}
-if (!import.meta.env.VITE_CURRENCY) {
-  console.warn("VITE_CURRENCY is not defined in your .env file.");
-}
-
-// Axios default setup
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
-export const AppContext = createContext();
+import { AppContext } from "./appContext";
+import apiClient from "../shared/lib/apiClient";
+import { env } from "../shared/config/env";
 
 export const AppContextProvider = ({ children }) => {
-  const currency = import.meta.env.VITE_CURRENCY;
   const navigate = useNavigate();
-
   const [user, setUser] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
   const [showUserLogin, setshowUserLogin] = useState(false);
@@ -30,36 +15,26 @@ export const AppContextProvider = ({ children }) => {
   const [searchQuery, setsearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
-  //fetch seller status
-
   const fetchSellerStatus = async () => {
     try {
-      const { data } = await axios.get("/api/seller/auth");
-      if (data.success) {
-        setIsSeller(true);
-      } else {
-        setIsSeller(false);
-      }
-    } catch (error) {
+      const { data } = await apiClient.get("/api/seller/auth");
+      setIsSeller(Boolean(data.success));
+    } catch {
       setIsSeller(false);
-      console.log(error.message);
     }
   };
 
-  //fetch user auth status and user cart items
-
   const fetchUser = async () => {
     try {
-      const { data } = await axios.get("/api/user/auth");
+      const { data } = await apiClient.get("/api/user/auth");
       if (data.success) {
         setUser(data.user || null);
-        setCartItems(data.user.cartItems);
+        setCartItems(data.user.cartItems || {});
       } else {
         toast.error(data.message);
       }
-    } catch (error) {
+    } catch {
       setUser(null);
-      console.log(error.message);
     } finally {
       setLoading(false);
     }
@@ -67,15 +42,14 @@ export const AppContextProvider = ({ children }) => {
 
   const fetchProducts = async () => {
     try {
-      // setProducts(dummyProducts); // Replace with API logic if needed
-      const { data } = await axios.get("/api/products/all");
+      const { data } = await apiClient.get("/api/products/all");
       if (data.success) {
         setProducts(data.products);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
+      console.error(error.message);
     }
   };
 
@@ -85,10 +59,7 @@ export const AppContextProvider = ({ children }) => {
       cartData[itemId] = (cartData[itemId] || 0) + 1;
       return cartData;
     });
-
-    toast.success("Item added to cart", {
-      style: { background: "#fff", color: "#000" },
-    });
+    toast.success("Item added to cart", { style: { background: "#fff", color: "#000" } });
   };
 
   const updateCartItem = (itemId, quantity) => {
@@ -97,10 +68,7 @@ export const AppContextProvider = ({ children }) => {
       cartData[itemId] = quantity;
       return cartData;
     });
-
-    toast.success("Item updated in cart", {
-      style: { background: "#fff", color: "#000" },
-    });
+    toast.success("Item updated in cart", { style: { background: "#fff", color: "#000" } });
   };
 
   const removeFromCart = (itemId) => {
@@ -111,7 +79,6 @@ export const AppContextProvider = ({ children }) => {
         if (cartData[itemId] === 0) {
           delete cartData[itemId];
         }
-
         toast.success("Item removed from cart", {
           style: { background: "#fff", color: "#000" },
         });
@@ -131,7 +98,7 @@ export const AppContextProvider = ({ children }) => {
   const getCartAmount = () => {
     let totalAmount = 0;
     for (const item in cartItems) {
-      const product = products.find((product) => product._id === item);
+      const product = products.find((productItem) => productItem._id === item);
       if (product) {
         totalAmount += product.offerPrice * cartItems[item];
       }
@@ -149,18 +116,7 @@ export const AppContextProvider = ({ children }) => {
     const updateUserCart = async () => {
       if (user) {
         try {
-          const { data } = await axios.post("/api/cart/update", {
-            cartData: cartItems,
-          });
-          console.log("Updating user cart:", data.cartItems);
-          if (data.success) {
-            setUser((prevUser) => ({
-              ...prevUser,
-              cart: data.cart,
-            }));
-          } else {
-            toast.error(data.message);
-          }
+          await apiClient.post("/api/cart/update", { cartData: cartItems });
         } catch (error) {
           toast.error(error.message);
         }
@@ -168,7 +124,7 @@ export const AppContextProvider = ({ children }) => {
     };
 
     updateUserCart();
-  }, [cartItems]);
+  }, [cartItems, user]);
 
   const value = {
     navigate,
@@ -179,7 +135,7 @@ export const AppContextProvider = ({ children }) => {
     showUserLogin,
     setshowUserLogin,
     products,
-    currency,
+    currency: env.currency,
     addToCart,
     updateCartItem,
     removeFromCart,
@@ -188,7 +144,7 @@ export const AppContextProvider = ({ children }) => {
     setsearchQuery,
     getCartAmount,
     getCartCount,
-    axios,
+    axios: apiClient,
     fetchProducts,
     loading,
     setLoading,
@@ -196,12 +152,4 @@ export const AppContextProvider = ({ children }) => {
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("useAppContext must be used within an AppContextProvider");
-  }
-  return context;
 };

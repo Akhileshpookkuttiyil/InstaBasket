@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
-const authUser = (req, res, next) => {
+const authUser = async (req, res, next) => {
   const token = req.cookies?.token;
 
   if (!token) {
@@ -20,7 +21,22 @@ const authUser = (req, res, next) => {
       });
     }
 
-    req.user = { id: decoded.id };
+    const user = await User.findById(decoded.id).select("_id isActive");
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. User not found.",
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is inactive. Contact support.",
+      });
+    }
+
+    req.user = { id: user._id.toString() };
     next();
   } catch (error) {
     console.error("authUser error:", error.message);

@@ -29,9 +29,8 @@ const orderSchema = new mongoose.Schema(
     },
 
     shippingAddress: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
-      ref: "Address",
     },
 
     isPaid: {

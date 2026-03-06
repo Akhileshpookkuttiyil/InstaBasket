@@ -6,9 +6,14 @@ import {
   changeStock,
   getAllProducts,
   getSingleProduct,
+  updateProduct,
 } from "../controllers/productController.js";
 import validate from "../middlewares/validate.js";
-import { addProductSchema, changeStockSchema } from "../schemas/productSchema.js";
+import {
+  addProductSchema,
+  changeStockSchema,
+  updateProductSchema,
+} from "../schemas/productSchema.js";
 
 const productRouter = express.Router();
 
@@ -31,5 +36,7 @@ productRouter.post(
   validate(changeStockSchema),
   changeStock
 );
+
+productRouter.patch("/:id", authSeller, validate(updateProductSchema), updateProduct);
 
 export default productRouter;

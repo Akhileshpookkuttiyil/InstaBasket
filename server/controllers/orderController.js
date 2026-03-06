@@ -3,13 +3,22 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import stripe from "stripe";
 import asyncHandler from "../utils/asyncHandler.js";
+import mongoose from "mongoose";
 
 const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 const TAX_RATE = 0.02;
+const MANAGEABLE_ORDER_STATUSES = [
+  "order placed",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+];
 
 // Place order with Stripe : POST /api/order/placeorderstripe
 export const placeOrderStripe = asyncHandler(async (req, res) => {
-  const { userId, items, shippingAddress, paymentMethod } = req.body;
+  const { items, shippingAddress, paymentMethod } = req.body;
+  const userId = req.user.id;
   const { origin } = req.headers;
 
   const user = await User.findById(userId);
@@ -58,7 +67,7 @@ export const placeOrderStripe = asyncHandler(async (req, res) => {
       line1: shippingAddress.street,
       city: shippingAddress.city,
       state: shippingAddress.state,
-      postal_code: shippingAddress.postalCode,
+      postal_code: shippingAddress.zipcode || shippingAddress.postalCode,
       country: "IN",
     },
   });
@@ -94,7 +103,8 @@ export const placeOrderStripe = asyncHandler(async (req, res) => {
 
 // Place order with COD : POST /api/order/placeordercod
 export const placeOrderCOD = asyncHandler(async (req, res) => {
-  const { userId, items, shippingAddress } = req.body;
+  const { items, shippingAddress } = req.body;
+  const userId = req.user.id;
 
   const user = await User.findById(userId);
   if (!user) {
@@ -177,16 +187,93 @@ export const getUserOrders = asyncHandler(async (req, res) => {
 
 // Get All Orders (Admin) : GET /api/order/getallorders
 export const getAllOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({
+  const { dateFrom, dateTo, status, paymentMethod, q } = req.query;
+
+  const query = {
     $or: [{ paymentMethod: "COD" }, { isPaid: true }],
-  })
+  };
+
+  const validStatuses = [...MANAGEABLE_ORDER_STATUSES, "order initiated"];
+  if (status && (validStatuses.includes(status) || status === "")) {
+    if (status !== "") query.orderStatus = status;
+  }
+
+  if (paymentMethod && ["COD", "Online"].includes(paymentMethod)) {
+    query.paymentMethod = paymentMethod;
+  }
+
+  if (dateFrom || dateTo) {
+    query.createdAt = {};
+    if (dateFrom) {
+      query.createdAt.$gte = new Date(dateFrom);
+    }
+    if (dateTo) {
+      const endDate = new Date(dateTo);
+      endDate.setHours(23, 59, 59, 999);
+      query.createdAt.$lte = endDate;
+    }
+  }
+
+  let orders = await Order.find(query)
     .populate("items.product")
     .populate("userId", "name email")
     .sort({ createdAt: -1 })
     .lean();
+
+  if (q && q.trim()) {
+    const needle = q.trim().toLowerCase();
+    orders = orders.filter((order) => {
+      const matchesUser =
+        order.userId?.name?.toLowerCase().includes(needle) ||
+        order.userId?.email?.toLowerCase().includes(needle);
+      const matchesOrderId = String(order._id).toLowerCase().includes(needle);
+      const matchesProduct = order.items?.some((item) =>
+        item.product?.name?.toLowerCase().includes(needle)
+      );
+      return matchesUser || matchesOrderId || matchesProduct;
+    });
+  }
 
   res.status(200).json({
     success: true,
     orders,
   });
 });
+
+export const updateOrderStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { orderStatus } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid order id",
+    });
+  }
+
+  if (!MANAGEABLE_ORDER_STATUSES.includes(orderStatus)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid order status",
+    });
+  }
+
+  const order = await Order.findById(id);
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: "Order not found",
+    });
+  }
+
+  order.orderStatus = orderStatus;
+  await order.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Order status updated",
+    order,
+  });
+});
+
+

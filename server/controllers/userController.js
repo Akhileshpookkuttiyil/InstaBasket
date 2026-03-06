@@ -6,20 +6,13 @@ import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
 import axios from "axios";
 import asyncHandler from "../utils/asyncHandler.js";
+import { cookieOptions } from "../config/env.js";
 
 // Token generator utility
 const generateToken = (user) => {
   return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
-};
-
-// Cookie options
-const cookieOptions = {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 // Initiating User (OTP) : POST /api/user/register/initiate
@@ -167,6 +160,13 @@ export const googleLogin = asyncHandler(async (req, res) => {
     await user.save();
   }
 
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      message: "Your account is inactive. Please contact support.",
+    });
+  }
+
   const jwtToken = generateToken(user);
   res.cookie("token", jwtToken, cookieOptions);
 
@@ -191,6 +191,13 @@ export const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user || user.provider === 'google') {
     return res.status(401).json({ success: false, message: "Invalid credentials or login method" });
+  }
+
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      message: "Your account is inactive. Please contact support.",
+    });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
@@ -232,3 +239,6 @@ export const checkAuth = asyncHandler(async (req, res) => {
     user,
   });
 });
+
+
+

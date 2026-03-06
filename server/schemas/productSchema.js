@@ -19,3 +19,18 @@ export const changeStockSchema = z.object({
     inStock: z.boolean(),
   })
 });
+
+export const updateProductSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Product ID is required"),
+  }),
+  body: z.object({
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    category: z.string().min(1, "Category is required"),
+    description: z.array(z.string()).or(z.string()),
+    price: z.preprocess((val) => Number(val), z.number().positive("Price must be positive")),
+    offerPrice: z.preprocess((val) => Number(val), z.number().min(0)).optional(),
+    countInStock: z.preprocess((val) => Number(val), z.number().int().min(0, "Stock cannot be negative")),
+    inStock: z.boolean().optional(),
+  }),
+});

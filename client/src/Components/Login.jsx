@@ -1,18 +1,54 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
+import toast from "react-hot-toast";
 import useAuthStore from "../store/useAuthStore";
 import useCartStore from "../store/useCartStore";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import toast from "react-hot-toast";
 import OtpVerificationForm from "./OtpVerificationForm";
-import { useGoogleLogin } from "@react-oauth/google";
+import apiClient from "../shared/lib/apiClient";
+import { env } from "../shared/config/env";
+
+const GoogleLoginButton = ({ onSuccess }) => {
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess,
+    onError: () => toast.error("Google login failed"),
+  });
+
+  return (
+    <button
+      type="button"
+      onClick={() => loginWithGoogle()}
+      className="w-full py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition inline-flex items-center justify-center gap-2"
+    >
+      <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true">
+        <path
+          fill="#EA4335"
+          d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.5 14.7 2.5 12 2.5A9.5 9.5 0 0 0 2.5 12 9.5 9.5 0 0 0 12 21.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-1.6H12z"
+        />
+        <path
+          fill="#34A853"
+          d="M3.6 7.6l3.2 2.3C7.6 7.8 9.6 6.4 12 6.4c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.5 14.7 2.5 12 2.5 8.3 2.5 5.1 4.6 3.6 7.6z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M12 21.5c2.6 0 4.8-.9 6.4-2.5l-3-2.4c-.8.6-1.9 1-3.4 1-2.4 0-4.4-1.4-5.1-3.4l-3.3 2.5C5.1 19.4 8.3 21.5 12 21.5z"
+        />
+        <path
+          fill="#4285F4"
+          d="M21.1 12.2c0-.6-.1-1.1-.2-1.6H12v3.9h5.5c-.2 1.2-.9 2.2-2 2.9l3 2.4c1.7-1.6 2.6-4 2.6-7.6z"
+        />
+      </svg>
+      Continue with Google
+    </button>
+  );
+};
 
 const Login = () => {
   const { setshowUserLogin, setUser } = useAuthStore();
   const { setCartItems } = useCartStore();
   const navigate = useNavigate();
 
-  const [state, setState] = useState("login"); // 'login' | 'register-init' | 'register-verify'
+  const [state, setState] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -20,7 +56,7 @@ const Login = () => {
 
   const handleResendOtp = async () => {
     try {
-      const { data } = await axios.post("/api/user/register/resend", {
+      const { data } = await apiClient.post("/api/user/register/resend", {
         name,
         email,
         password,
@@ -32,7 +68,7 @@ const Login = () => {
         toast.error(data?.message || "Failed to resend OTP");
       }
     } catch (err) {
-      if (err.status === 429) {
+      if (err?.response?.status === 429) {
         toast.error("Too many OTP requests. Please try again after a while.");
       } else {
         const message =
@@ -46,11 +82,9 @@ const Login = () => {
 
   const handleGoogleLogin = async (res) => {
     try {
-      const response = await axios.post(
-        "/api/user/google-login",
-        { token: res.access_token },
-        { withCredentials: true }
-      );
+      const response = await apiClient.post("/api/user/google-login", {
+        token: res.access_token,
+      });
       setUser(response.data.user);
       toast.success("Google login success");
       setshowUserLogin(false);
@@ -61,19 +95,14 @@ const Login = () => {
     }
   };
 
-  const loginWithGoogle = useGoogleLogin({
-    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    onSuccess: handleGoogleLogin,
-    onError: () => toast.error("Google login failed"),
-  });
-
   const handleOtpSubmit = async () => {
     try {
       const otpCode = otp.join("");
-      const { data } = await axios.post("/api/user/register/verify", {
+      const { data } = await apiClient.post("/api/user/register/verify", {
         email,
         otp: otpCode,
       });
+
       if (data.success) {
         toast.success("Verification successful!");
         setUser(data.user);
@@ -93,10 +122,11 @@ const Login = () => {
 
     try {
       if (state === "login") {
-        const { data } = await axios.post("/api/user/login", {
+        const { data } = await apiClient.post("/api/user/login", {
           email,
           password,
         });
+
         if (data.success) {
           toast.success(data.message);
           setUser(data.user);
@@ -108,11 +138,12 @@ const Login = () => {
           toast.error(data.message);
         }
       } else if (state === "register-init") {
-        const { data } = await axios.post("/api/user/register/initiate", {
+        const { data } = await apiClient.post("/api/user/register/initiate", {
           name,
           email,
           password,
         });
+
         if (data.success) {
           toast.success("OTP sent to your email.");
           setState("register-verify");
@@ -145,8 +176,16 @@ const Login = () => {
         <form
           onSubmit={onSubmitHandler}
           onClick={(e) => e.stopPropagation()}
-          className="flex flex-col gap-4 m-auto items-start p-8 py-12 w-80 sm:w-[352px] rounded-lg shadow-xl border border-gray-200 bg-white"
+          className="relative flex flex-col gap-4 m-auto items-start p-8 py-12 w-80 sm:w-[352px] rounded-lg shadow-xl border border-gray-200 bg-white"
         >
+          <button
+            type="button"
+            onClick={() => setshowUserLogin(false)}
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl leading-none"
+            aria-label="Close login modal"
+          >
+            &times;
+          </button>
           <p className="text-2xl font-medium m-auto">
             <span className="text-primary">User</span>{" "}
             {state === "login" ? "Login" : "Create Account"}
@@ -217,7 +256,25 @@ const Login = () => {
           >
             {state === "login" ? "Login" : "Continue"}
           </button>
-          
+
+          {env.googleClientId ? (
+            <GoogleLoginButton onSuccess={handleGoogleLogin} />
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed inline-flex items-center justify-center gap-2"
+              title="Set VITE_GOOGLE_CLIENT_ID to enable Google login"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 opacity-60" aria-hidden="true">
+                <path
+                  fill="#9CA3AF"
+                  d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.5 14.7 2.5 12 2.5A9.5 9.5 0 0 0 2.5 12 9.5 9.5 0 0 0 12 21.5c5.5 0 9.1-3.9 9.1-9.3 0-.6-.1-1.1-.2-1.6H12z"
+                />
+              </svg>
+              Google login unavailable
+            </button>
+          )}
         </form>
       )}
     </div>

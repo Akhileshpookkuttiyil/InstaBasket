@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { assets, categories } from "../../assets/assets";
-import axios from "axios";
 import toast from "react-hot-toast";
+import apiClient from "../../shared/lib/apiClient";
 
 const initialFormData = {
   name: "",
@@ -68,7 +68,7 @@ const AddProducts = () => {
       form.append("productData", JSON.stringify(payload));
       files.forEach((file) => form.append("images", file));
 
-      const { data } = await axios.post("/api/products/add", form);
+      const { data } = await apiClient.post("/api/seller/products/add", form);
 
       if (data.success) {
         toast.success(data.message || "Product added successfully");
