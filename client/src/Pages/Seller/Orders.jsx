@@ -1,6 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
+import {
+  Search,
+  Calendar,
+  Filter,
+  CreditCard,
+  MapPin,
+  User,
+  ShoppingBag as ShoppingCart,
+  Package,
+  TrendingUp,
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ArrowRight,
+  DollarSign,
+  FileText,
+  Truck,
+} from "lucide-react";
 
 const ORDER_STATUSES = [
   "order placed",
@@ -108,77 +128,101 @@ const Orders = () => {
   return (
     <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8">
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="text-xl font-semibold text-gray-800">Orders Management</h2>
+        <div className="flex items-center gap-2 mb-1">
+          <ShoppingCart size={24} className="text-primary" />
+          <h2 className="text-xl font-semibold text-gray-800">Orders Management</h2>
+        </div>
         <p className="mt-1 text-sm text-gray-600">
           Filter orders by date, payment method, and status. Update delivery status
           directly.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
-          <input
-            type="text"
-            placeholder="Search order/user"
-            value={filters.q}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, q: e.target.value }))
-            }
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary md:col-span-2"
-          />
-          <input
-            type="date"
-            value={filters.dateFrom}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
-            }
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-          />
-          <input
-            type="date"
-            value={filters.dateTo}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
-            }
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-          />
-          <select
-            value={filters.paymentMethod}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))
-            }
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-          >
-            <option value="">All Payments</option>
-            <option value="COD">COD</option>
-            <option value="Online">Online</option>
-          </select>
+          <div className="relative md:col-span-2">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search order/user"
+              value={filters.q}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, q: e.target.value }))
+              }
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div className="relative">
+            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
+              }
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary text-gray-600"
+            />
+          </div>
+          <div className="relative">
+            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="date"
+              value={filters.dateTo}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
+              }
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary text-gray-600"
+            />
+          </div>
+          <div className="relative">
+            <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <select
+              value={filters.paymentMethod}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))
+              }
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none text-gray-700"
+            >
+              <option value="">All Payments</option>
+              <option value="COD">COD</option>
+              <option value="Online">Online</option>
+            </select>
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <select
-            value={filters.status}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, status: e.target.value }))
-            }
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-          >
-            <option value="">All Statuses</option>
-            {ORDER_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-            <p className="text-gray-500">Filtered Orders</p>
-            <p className="font-semibold text-gray-800">{totals.orders}</p>
+          <div className="relative">
+            <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <select
+              value={filters.status}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, status: e.target.value }))
+              }
+              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none text-gray-700"
+            >
+              <option value="">All Statuses</option>
+              {ORDER_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-            <p className="text-gray-500">Filtered Revenue</p>
-            <p className="font-semibold text-gray-800">
-              {currency}
-              {totals.revenue.toLocaleString()}
-            </p>
+
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500">Filtered Orders</p>
+              <p className="font-semibold text-gray-800">{totals.orders}</p>
+            </div>
+            <Package size={24} className="text-gray-400/50" />
+          </div>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500">Filtered Revenue</p>
+              <p className="font-semibold text-gray-800">
+                {currency}
+                {totals.revenue.toLocaleString()}
+              </p>
+            </div>
+            <DollarSign size={24} className="text-emerald-500/50" />
           </div>
         </div>
       </div>
@@ -200,7 +244,7 @@ const Orders = () => {
             >
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Order</p>
+                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><FileText size={14}/> Order</p>
                   <p className="font-semibold text-gray-800">
                     #{String(order._id).slice(-8).toUpperCase()}
                   </p>
@@ -210,7 +254,7 @@ const Orders = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Customer</p>
+                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><User size={14}/> Customer</p>
                   <p className="font-medium text-gray-800">
                     {order.userId?.name || "Unknown"}
                   </p>
@@ -221,7 +265,7 @@ const Orders = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Payment</p>
+                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><CreditCard size={14}/> Payment</p>
                   <p className="text-sm text-gray-700">
                     Method: <span className="font-medium">{order.paymentMethod}</span>
                   </p>
@@ -238,7 +282,7 @@ const Orders = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs uppercase text-gray-500">Status</p>
+                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><Truck size={14}/> Status</p>
                   <select
                     value={order.orderStatus}
                     onChange={(e) => updateStatus(order._id, e.target.value)}
@@ -255,7 +299,7 @@ const Orders = () => {
               </div>
 
               <div className="mt-3 rounded-lg bg-gray-50 p-3">
-                <p className="text-xs uppercase text-gray-500">Items</p>
+                <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><Package size={14}/> Items</p>
                 <div className="mt-2 space-y-1 text-sm text-gray-700">
                   {(order.items || []).map((item) => (
                     <p key={item._id || item.product?._id}>

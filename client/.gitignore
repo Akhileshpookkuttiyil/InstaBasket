@@ -1,6 +1,9 @@
 # .env files
 .env
 
+# Claude AI notes
+CLAUDE.md
+
 # Node.js modules
 /node_modules
 

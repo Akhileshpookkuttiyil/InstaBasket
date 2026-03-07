@@ -4,21 +4,26 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
+import {
+  LayoutDashboard,
+  Plus,
+  Package,
+  ShoppingBag,
+  Users,
+  LogOut,
+  Store
+} from "lucide-react";
 
 const SellerLayout = () => {
   const navigate = useNavigate();
   const { fetchSellerStatus } = useAuthStore();
 
   const sidebarLinks = [
-    { name: "Dashboard", path: "/seller", icon: assets.trust_icon },
-    { name: "Add Product", path: "/seller/add-product", icon: assets.add_icon },
-    {
-      name: "Products",
-      path: "/seller/product-list",
-      icon: assets.product_list_icon,
-    },
-    { name: "Orders", path: "/seller/orders", icon: assets.order_icon },
-    { name: "Users", path: "/seller/users", icon: assets.profile_icon },
+    { name: "Dashboard", path: "/seller", icon: LayoutDashboard },
+    { name: "Add Product", path: "/seller/add-product", icon: Plus },
+    { name: "Products", path: "/seller/product-list", icon: Package },
+    { name: "Orders", path: "/seller/orders", icon: ShoppingBag },
+    { name: "Users", path: "/seller/users", icon: Users },
   ];
 
   const handleLogout = async () => {
@@ -48,13 +53,17 @@ const SellerLayout = () => {
           />
         </Link>
         <div className="flex items-center gap-5 text-gray-500">
-          <p className="hidden md:block text-sm">Seller Panel</p>
+          <div className="hidden md:flex items-center gap-2 text-sm">
+            <Store size={18} />
+            <p>Seller Panel</p>
+          </div>
           <button
             onClick={handleLogout}
-            className="rounded-full border border-gray-300 text-sm px-4 py-1 hover:bg-gray-50"
+            className="flex items-center gap-2 rounded-full border border-gray-300 text-sm px-4 py-1 hover:bg-gray-50"
             aria-label="Logout from Seller Dashboard"
           >
-            Logout
+            <LogOut size={16} />
+            <span className="hidden md:inline">Logout</span>
           </button>
         </div>
       </header>
@@ -63,7 +72,7 @@ const SellerLayout = () => {
       <div className="flex bg-gray-50/60">
         {/* Sidebar */}
         <nav className="md:w-64 w-16 border-r h-[95vh] border-gray-200 bg-white pt-4 flex flex-col">
-          {sidebarLinks.map(({ name, path, icon }) => (
+          {sidebarLinks.map(({ name, path, icon: Icon }) => (
             <NavLink
               to={path}
               key={name}
@@ -76,8 +85,8 @@ const SellerLayout = () => {
                 }`
               }
             >
-              <img src={icon} alt={`${name} icon`} className="w-6 h-6 object-contain" />
-              <p className="md:block hidden">{name}</p>
+              <Icon size={20} strokeWidth={2} />
+              <p className="md:block hidden font-medium">{name}</p>
             </NavLink>
           ))}
         </nav>

@@ -2,6 +2,17 @@ import React, { useState } from "react";
 import { assets, categories } from "../../assets/assets";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
+import {
+  PackagePlus,
+  Image as ImageIcon,
+  Package,
+  FileText,
+  Tag,
+  DollarSign,
+  Layers,
+  AlertCircle,
+  PlusCircle
+} from "lucide-react";
 
 const initialFormData = {
   name: "",
@@ -90,9 +101,17 @@ const AddProducts = () => {
         onSubmit={onSubmitHandler}
         className="md:p-10 p-4 space-y-5 max-w-lg"
       >
+        <div className="flex items-center gap-2 mb-2">
+          <PackagePlus size={24} className="text-primary" />
+          <h2 className="text-xl font-semibold text-gray-800">Add New Product</h2>
+        </div>
+
         {/* Product Images */}
         <div>
-          <p className="text-base font-medium">Product Images</p>
+          <p className="text-base font-medium flex items-center gap-2">
+            <ImageIcon size={18} className="text-gray-600" />
+            Product Images
+          </p>
           <div className="flex flex-wrap items-center gap-3 mt-2">
             {Array(4)
               .fill("")
@@ -121,14 +140,15 @@ const AddProducts = () => {
 
         {/* Name */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="name" className="font-medium">
+          <label htmlFor="name" className="font-medium flex items-center gap-2">
+            <Package size={16} className="text-gray-500" />
             Product Name
           </label>
           <input
             id="name"
             type="text"
             placeholder="Enter product name"
-            className="outline-none py-2 px-3 border border-gray-200 rounded"
+            className="outline-none py-2 px-3 border border-gray-200 rounded text-sm"
             value={formData.name}
             onChange={handleInputChange}
             required
@@ -137,14 +157,15 @@ const AddProducts = () => {
 
         {/* Description */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="description" className="font-medium">
+          <label htmlFor="description" className="font-medium flex items-center gap-2">
+            <FileText size={16} className="text-gray-500" />
             Product Description
           </label>
           <textarea
             id="description"
             rows={4}
             placeholder="Enter product description"
-            className="outline-none py-2 px-3 border border-gray-200 rounded resize-none"
+            className="outline-none py-2 px-3 border border-gray-200 rounded resize-none text-sm"
             value={formData.description}
             onChange={handleInputChange}
           />
@@ -152,12 +173,13 @@ const AddProducts = () => {
 
         {/* Category */}
         <div className="flex flex-col gap-1">
-          <label htmlFor="category" className="font-medium">
+          <label htmlFor="category" className="font-medium flex items-center gap-2">
+            <Tag size={16} className="text-gray-500" />
             Category
           </label>
           <select
             id="category"
-            className="outline-none py-2 px-3 border border-gray-200 rounded"
+            className="outline-none py-2 px-3 border border-gray-200 rounded text-sm"
             value={formData.category}
             onChange={handleInputChange}
             required
@@ -174,14 +196,15 @@ const AddProducts = () => {
         {/* Price, Offer Price, and Stock */}
         <div className="flex flex-wrap gap-5">
           <div className="flex-1 flex flex-col gap-1">
-            <label htmlFor="price" className="font-medium">
+            <label htmlFor="price" className="font-medium flex items-center gap-2 text-sm whitespace-nowrap">
+              <DollarSign size={16} className="text-gray-500 hidden sm:block" />
               Product Price
             </label>
             <input
               id="price"
               type="number"
               placeholder="0"
-              className="outline-none py-2 px-3 border border-gray-200 rounded"
+              className="outline-none py-2 px-3 border border-gray-200 rounded text-sm min-w-0"
               value={formData.price}
               onChange={handleInputChange}
               required
@@ -189,28 +212,30 @@ const AddProducts = () => {
           </div>
 
           <div className="flex-1 flex flex-col gap-1">
-            <label htmlFor="offerPrice" className="font-medium">
+            <label htmlFor="offerPrice" className="font-medium flex items-center gap-2 text-sm whitespace-nowrap">
+              <AlertCircle size={16} className="text-gray-500 hidden sm:block" />
               Offer Price
             </label>
             <input
               id="offerPrice"
               type="number"
               placeholder="0"
-              className="outline-none py-2 px-3 border border-gray-200 rounded"
+              className="outline-none py-2 px-3 border border-gray-200 rounded text-sm min-w-0"
               value={formData.offerPrice}
               onChange={handleInputChange}
             />
           </div>
 
           <div className="flex-1 flex flex-col gap-1">
-            <label htmlFor="countInStock" className="font-medium">
+            <label htmlFor="countInStock" className="font-medium flex items-center gap-2 text-sm whitespace-nowrap">
+              <Layers size={16} className="text-gray-500 hidden sm:block" />
               Stock Quantity
             </label>
             <input
               id="countInStock"
               type="number"
               placeholder="0"
-              className="outline-none py-2 px-3 border border-gray-200 rounded"
+              className="outline-none py-2 px-3 border border-gray-200 rounded text-sm min-w-0"
               value={formData.countInStock}
               onChange={handleInputChange}
               required
@@ -221,8 +246,9 @@ const AddProducts = () => {
         {/* Submit */}
         <button
           type="submit"
-          className="bg-primary text-white font-semibold py-2.5 px-8 rounded hover:bg-primary-dark transition"
+          className="flex items-center justify-center gap-2 bg-primary text-white font-semibold py-2.5 px-8 rounded hover:bg-primary-dark transition mt-2 w-full sm:w-auto"
         >
+          <PlusCircle size={18} />
           ADD PRODUCT
         </button>
       </form>

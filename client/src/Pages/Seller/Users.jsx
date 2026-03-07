@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
+import {
+  Users as UsersIcon,
+  UserCheck,
+  UserX,
+  Search,
+  Calendar,
+  DollarSign,
+  ShoppingBag
+} from "lucide-react";
 
 const Users = () => {
   const currency = import.meta.env.VITE_CURRENCY || "$";
@@ -75,33 +84,46 @@ const Users = () => {
   return (
     <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8">
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-2xl font-semibold text-gray-800">User Management</h2>
+        <div className="flex items-center gap-2">
+          <UsersIcon size={24} className="text-primary" />
+          <h2 className="text-2xl font-semibold text-gray-800">User Management</h2>
+        </div>
         <p className="mt-1 text-sm text-gray-600">
           Search users, track spending, and activate/deactivate accounts.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-            <p className="text-gray-500">Total Users</p>
-            <p className="text-xl font-semibold text-gray-800">{totals.total}</p>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500">Total Users</p>
+              <p className="text-xl font-semibold text-gray-800">{totals.total}</p>
+            </div>
+            <UsersIcon size={24} className="text-gray-400/50" />
           </div>
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-            <p className="text-gray-500">Active</p>
-            <p className="text-xl font-semibold text-emerald-600">{totals.active}</p>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500">Active</p>
+              <p className="text-xl font-semibold text-emerald-600">{totals.active}</p>
+            </div>
+            <UserCheck size={24} className="text-emerald-500/50" />
           </div>
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-            <p className="text-gray-500">Inactive</p>
-            <p className="text-xl font-semibold text-red-500">{totals.inactive}</p>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
+            <div>
+              <p className="text-gray-500">Inactive</p>
+              <p className="text-xl font-semibold text-red-500">{totals.inactive}</p>
+            </div>
+            <UserX size={24} className="text-red-500/50" />
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search users by name or email"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+            className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary"
           />
         </div>
       </div>

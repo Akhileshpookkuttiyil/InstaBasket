@@ -1,6 +1,8 @@
 # .env files
 .env
 
+CLAUDE.md
+
 # Node.js modules
 /node_modules
 

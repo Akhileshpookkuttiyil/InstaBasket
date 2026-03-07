@@ -3,6 +3,22 @@ import toast from "react-hot-toast";
 import { categories } from "../../assets/assets";
 import useProductStore from "../../store/useProductStore";
 import apiClient from "../../shared/lib/apiClient";
+import {
+  Search,
+  Filter,
+  Package,
+  Edit,
+  X,
+  Save,
+  Tag,
+  DollarSign,
+  Layers,
+  Check,
+  XCircle,
+  AlertTriangle,
+  Image,
+  Settings,
+} from "lucide-react";
 
 const getEditableForm = (product) => ({
   name: product.name || "",
@@ -153,36 +169,48 @@ const ProductsList = () => {
     <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll flex flex-col justify-between">
       <div className="w-full md:p-10 p-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
-          <h2 className="text-xl font-semibold text-gray-800">Products Management</h2>
+          <div className="flex items-center gap-2">
+            <Package size={24} className="text-primary" />
+            <h2 className="text-xl font-semibold text-gray-800">Products Management</h2>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary min-w-[200px]"
-            />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-            >
-              <option value="all">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.path} value={cat.path}>
-                  {cat.path}
-                </option>
-              ))}
-            </select>
-            <select
-              value={stockStatus}
-              onChange={(e) => setStockStatus(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-            >
-              <option value="all">All Items</option>
-              <option value="instock">In Stock</option>
-              <option value="outofstock">Out of Stock</option>
-            </select>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary min-w-[200px]"
+              />
+            </div>
+            <div className="relative">
+              <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.path} value={cat.path}>
+                    {cat.path}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="relative">
+              <Layers size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select
+                value={stockStatus}
+                onChange={(e) => setStockStatus(e.target.value)}
+                className="rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none"
+              >
+                <option value="all">All Items</option>
+                <option value="instock">In Stock</option>
+                <option value="outofstock">Out of Stock</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -195,14 +223,14 @@ const ProductsList = () => {
             <table className="md:table-auto table-fixed w-full">
               <thead className="text-gray-900 text-sm text-left">
                 <tr>
-                  <th className="px-4 py-3 font-semibold truncate">Product</th>
-                  <th className="px-4 py-3 font-semibold truncate">Category</th>
-                  <th className="px-4 py-3 font-semibold truncate hidden md:block">
-                    Selling Price
+                  <th className="px-4 py-3 font-semibold truncate"><span className="flex items-center gap-1"><Package size={14} className="text-gray-500"/> Product</span></th>
+                  <th className="px-4 py-3 font-semibold truncate"><span className="flex items-center gap-1"><Tag size={14} className="text-gray-500"/> Category</span></th>
+                  <th className="px-4 py-3 font-semibold truncate hidden md:table-cell">
+                    <span className="flex items-center gap-1"><DollarSign size={14} className="text-gray-500"/> Selling Price</span>
                   </th>
-                  <th className="px-4 py-3 font-semibold truncate">Stock</th>
-                  <th className="px-4 py-3 font-semibold truncate">In Stock</th>
-                  <th className="px-4 py-3 font-semibold truncate">Actions</th>
+                  <th className="px-4 py-3 font-semibold truncate"><span className="flex items-center gap-1"><Layers size={14} className="text-gray-500"/> Stock</span></th>
+                  <th className="px-4 py-3 font-semibold truncate"><span className="flex items-center gap-1"><Check size={14} className="text-gray-500"/> In Stock</span></th>
+                  <th className="px-4 py-3 font-semibold truncate"><span className="flex items-center gap-1"><Settings size={14} className="text-gray-500"/> Actions</span></th>
                 </tr>
               </thead>
               <tbody className="text-sm text-gray-500">
@@ -252,16 +280,23 @@ const ProductsList = () => {
                           readOnly
                         />
                         <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-emerald-600 transition-colors duration-200" />
-                        <span className="dot absolute left-1 top-1 w-5 h-5 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5" />
+                        <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full flex items-center justify-center transition-transform duration-200 peer-checked:translate-x-5">
+                          {product.inStock ? (
+                            <Check size={12} className="text-white" />
+                          ) : (
+                            <X size={12} className="text-gray-500" />
+                          )}
+                        </div>
                       </label>
                     </td>
 
                     <td className="px-4 py-3">
                       <button
                         onClick={() => onEditOpen(product)}
-                        className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dull"
+                        className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-dull"
                       >
-                        Edit
+                        <Edit size={14} />
+                        <span>Edit</span>
                       </button>
                     </td>
                   </tr>
@@ -283,19 +318,25 @@ const ProductsList = () => {
             className="w-full max-w-xl rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Edit Product</h3>
+              <div className="flex items-center gap-2">
+                <Edit size={20} className="text-primary" />
+                <h3 className="text-lg font-semibold text-gray-800">Edit Product</h3>
+              </div>
               <button
                 type="button"
                 onClick={onEditClose}
-                className="text-gray-500 hover:text-gray-700"
+                className="flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
               >
-                x
+                <X size={18} />
               </button>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="text-sm text-gray-600">Name</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <Package size={14} />
+                  Name
+                </label>
                 <input
                   value={editForm.name}
                   onChange={(e) => onEditChange("name", e.target.value)}
@@ -305,7 +346,10 @@ const ProductsList = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Category</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <Tag size={14} />
+                  Category
+                </label>
                 <select
                   value={editForm.category}
                   onChange={(e) => onEditChange("category", e.target.value)}
@@ -321,7 +365,10 @@ const ProductsList = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Stock Quantity</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <Layers size={14} />
+                  Stock Quantity
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -333,7 +380,10 @@ const ProductsList = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Price</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <DollarSign size={14} />
+                  Price
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -345,7 +395,10 @@ const ProductsList = () => {
               </div>
 
               <div>
-                <label className="text-sm text-gray-600">Offer Price</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <AlertTriangle size={14} />
+                  Offer Price
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -357,7 +410,10 @@ const ProductsList = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-sm text-gray-600">Description</label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  <Image size={14} />
+                  Description
+                </label>
                 <textarea
                   rows={4}
                   value={editForm.description}
@@ -371,8 +427,16 @@ const ProductsList = () => {
                   type="checkbox"
                   checked={editForm.inStock}
                   onChange={(e) => onEditChange("inStock", e.target.checked)}
+                  className="rounded border-gray-300"
                 />
-                Mark as in stock
+                <span className="flex items-center gap-2">
+                  {editForm.inStock ? (
+                    <Check size={14} className="text-emerald-500" />
+                  ) : (
+                    <XCircle size={14} className="text-gray-400" />
+                  )}
+                  Mark as in stock
+                </span>
               </label>
             </div>
 
@@ -380,16 +444,18 @@ const ProductsList = () => {
               <button
                 type="button"
                 onClick={onEditClose}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 disabled={saving}
               >
+                <X size={14} />
                 Cancel
               </button>
               <button
                 type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dull disabled:opacity-60"
+                className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dull disabled:opacity-60"
                 disabled={saving}
               >
+                <Save size={14} />
                 {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
