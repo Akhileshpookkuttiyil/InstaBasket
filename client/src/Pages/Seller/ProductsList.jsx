@@ -405,7 +405,6 @@ const ProductsList = () => {
                   value={editForm.offerPrice}
                   onChange={(e) => onEditChange("offerPrice", e.target.value)}
                   className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
-                  required
                 />
               </div>
 

@@ -29,12 +29,7 @@ const productSchema = new mongoose.Schema(
     offerPrice: {
       type: Number,
       min: [0, "Offer price must be a positive number"],
-      validate: {
-        validator: function (v) {
-          return v < this.price || v === undefined; // Ensure offerPrice is less than original price
-        },
-        message: "Offer price cannot be greater than the original price.",
-      },
+      default: function() { return this.price; }
     },
     countInStock: {
       type: Number,

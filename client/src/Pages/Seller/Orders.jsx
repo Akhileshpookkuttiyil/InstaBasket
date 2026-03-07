@@ -190,7 +190,7 @@ const Orders = () => {
 
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="relative">
-            <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Filter size={16} className="absolute left-3 top-1/3 -translate-y-1/2 text-gray-400" />
             <select
               value={filters.status}
               onChange={(e) =>
