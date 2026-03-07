@@ -7,6 +7,7 @@ import useCartStore from "../store/useCartStore";
 import OtpVerificationForm from "./OtpVerificationForm";
 import apiClient from "../shared/lib/apiClient";
 import { env } from "../shared/config/env";
+import { User as UserIcon, Mail, Lock, X } from "lucide-react";
 
 const GoogleLoginButton = ({ onSuccess }) => {
   const loginWithGoogle = useGoogleLogin({
@@ -181,10 +182,10 @@ const Login = () => {
           <button
             type="button"
             onClick={() => setshowUserLogin(false)}
-            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl leading-none"
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 transition-colors"
             aria-label="Close login modal"
           >
-            &times;
+            <X size={20} />
           </button>
           <p className="text-2xl font-medium m-auto">
             <span className="text-primary">User</span>{" "}
@@ -193,38 +194,47 @@ const Login = () => {
 
           {state === "register-init" && (
             <div className="w-full">
-              <p>Name</p>
-              <input
-                onChange={(e) => setName(e.target.value)}
-                value={name}
-                placeholder="type here"
-                className="border border-gray-200 rounded w-full p-2 mt-1 outline-primary"
-                type="text"
-                required
-              />
+              <p className="mb-1">Name</p>
+              <div className="relative">
+                <UserIcon size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  onChange={(e) => setName(e.target.value)}
+                  value={name}
+                  placeholder="type here"
+                  className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
+                  type="text"
+                  required
+                />
+              </div>
             </div>
           )}
           <div className="w-full">
-            <p>Email</p>
-            <input
-              onChange={(e) => setEmail(e.target.value)}
-              value={email}
-              placeholder="type here"
-              className="border border-gray-200 rounded w-full p-2 mt-1 outline-primary"
-              type="email"
-              required
-            />
+            <p className="mb-1">Email</p>
+            <div className="relative">
+              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                placeholder="type here"
+                className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
+                type="email"
+                required
+              />
+            </div>
           </div>
           <div className="w-full">
-            <p>Password</p>
-            <input
-              onChange={(e) => setPassword(e.target.value)}
-              value={password}
-              placeholder="type here"
-              className="border border-gray-200 rounded w-full p-2 mt-1 outline-primary"
-              type="password"
-              required
-            />
+            <p className="mb-1">Password</p>
+            <div className="relative">
+              <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                placeholder="type here"
+                className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
+                type="password"
+                required
+              />
+            </div>
           </div>
 
           <p className="w-full text-center">

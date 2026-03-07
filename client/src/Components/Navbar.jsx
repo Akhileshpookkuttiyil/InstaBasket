@@ -4,6 +4,7 @@ import { assets } from "../assets/assets";
 import useAuthStore from "../store/useAuthStore";
 import useCartStore from "../store/useCartStore";
 import useProductStore from "../store/useProductStore";
+import { Package, LogOut } from "lucide-react";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -203,21 +204,21 @@ const Navbar = () => {
               <ul
                 role="menu"
                 aria-label="User menu"
-                className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-32 rounded-md text-sm z-40 flex-col"
+                className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-36 rounded-md text-sm z-40 flex-col"
               >
                 <li
                   role="menuitem"
                   onClick={() => navigate("/my-orders")}
-                  className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
+                  className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
                 >
-                  My Orders
+                  <Package size={16} className="text-gray-500" /> My Orders
                 </li>
                 <li
                   role="menuitem"
                   onClick={handleLogout}
-                  className="p-1.5 pl-3 hover:bg-primary/10 cursor-pointer"
+                  className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
                 >
-                  Log Out
+                  <LogOut size={16} className="text-gray-500" /> Log Out
                 </li>
               </ul>
             </div>
