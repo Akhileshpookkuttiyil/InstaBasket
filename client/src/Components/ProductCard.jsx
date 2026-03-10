@@ -17,7 +17,8 @@ const ProductCard = ({ product }) => {
   const offer = Number(product?.offerPrice || 0);
   const discountPercent =
     mrp > offer && mrp > 0 ? Math.round(((mrp - offer) / mrp) * 100) : 0;
-  const rating = Number(product?.rating || 4);
+  const rating = Number(product?.rating ?? 0);
+  const ratingCount = Number(product?.ratingCount ?? 0);
 
   return (
     <div
@@ -73,7 +74,9 @@ const ProductCard = ({ product }) => {
                 alt="rating"
               />
             ))}
-          <p className="ml-1">({rating.toFixed(1)})</p>
+          <p className="ml-1">
+            ({rating.toFixed(1)}{ratingCount > 0 ? ` · ${ratingCount}` : ""})
+          </p>
         </div>
 
         <div className="flex items-end justify-between gap-3">

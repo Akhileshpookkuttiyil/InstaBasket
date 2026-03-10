@@ -3,14 +3,15 @@ import { z } from "zod";
 const validate = (schema) => (req, res, next) => {
   try {
     // Some routes might have JSON sent as a string within FormData (like Multer fields)
-    let dataToValidate = req.body;
+    const safeBody = req.body || {};
+    let dataToValidate = safeBody;
     
     // Check if we need to parse productData (common in this app)
-    if (req.body.productData && typeof req.body.productData === 'string') {
+    if (safeBody.productData && typeof safeBody.productData === "string") {
       try {
         dataToValidate = {
-          ...req.body,
-          productData: JSON.parse(req.body.productData)
+          ...safeBody,
+          productData: JSON.parse(safeBody.productData),
         };
       } catch (e) {
         // Fallback or leave as is if not JSON

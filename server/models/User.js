@@ -23,9 +23,33 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null, // only set when registered via Google
     },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     cartItems: {
       type: Object,
       default: {},
+    },
+    settings: {
+      marketingEmails: {
+        type: Boolean,
+        default: true,
+      },
+      orderUpdates: {
+        type: Boolean,
+        default: true,
+      },
+      darkMode: {
+        type: Boolean,
+        default: false,
+      },
+      language: {
+        type: String,
+        enum: ["en", "hi"],
+        default: "en",
+      },
     },
     isAdmin: {
       type: Boolean,

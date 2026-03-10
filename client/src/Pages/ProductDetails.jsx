@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import useProductStore from "../store/useProductStore";
 import useCartStore from "../store/useCartStore";
 import useAuthStore from "../store/useAuthStore";
@@ -6,11 +6,13 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import ProductCard from "../Components/ProductCard";
 import ProductDetailsSkeleton from "../Components/ProductDetailsSkeleton";
+import RatingModal from "../Components/RatingModal";
+import apiClient from "../shared/lib/apiClient";
 
 const ProductDetails = () => {
   const { products } = useProductStore();
   const { addToCart } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, setshowUserLogin } = useAuthStore();
   const currency = import.meta.env.VITE_CURRENCY || "$";
   const navigate = useNavigate();
   const { id } = useParams();
@@ -18,16 +20,28 @@ const ProductDetails = () => {
   const [thumbnail, setThumbnail] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true); 
+  const [productRatings, setProductRatings] = useState([]);
+  const [ratingSummary, setRatingSummary] = useState({
+    averageRating: 0,
+    totalRatings: 0,
+  });
+  const [loadingRatings, setLoadingRatings] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingRefreshKey, setRatingRefreshKey] = useState(0);
 
   const product = products.find((item) => item._id === id);
 
-  // Simulate loading (fake timeout to mimic fetching)
   useEffect(() => {
     if (product) {
       setThumbnail(product.image[0]);
-      setLoading(false); // ✅ hide skeleton after data is available
+      setLoading(false);
+      return;
     }
-  }, [product]);
+
+    if (products.length > 0) {
+      setLoading(false);
+    }
+  }, [product, products.length]);
 
   // Set related products
   useEffect(() => {
@@ -39,7 +53,30 @@ const ProductDetails = () => {
     }
   }, [products, product]);
 
-  // ✅ Show skeleton while loading
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (!product?._id) return;
+
+      try {
+        setLoadingRatings(true);
+        const { data } = await apiClient.get(
+          `/api/ratings/product/${product._id}?page=1&limit=8`
+        );
+
+        if (data.success) {
+          setProductRatings(data.ratings || []);
+          setRatingSummary(data.summary || { averageRating: 0, totalRatings: 0 });
+        }
+      } catch (error) {
+        console.error("Failed to fetch ratings:", error.message);
+      } finally {
+        setLoadingRatings(false);
+      }
+    };
+
+    fetchRatings();
+  }, [product?._id, ratingRefreshKey]);
+
   if (loading) {
     return <ProductDetailsSkeleton />;
   }
@@ -52,6 +89,9 @@ const ProductDetails = () => {
       </div>
     );
   }
+
+  const averageRating = ratingSummary.averageRating ?? product.rating ?? 0;
+  const totalRatings = ratingSummary.totalRatings ?? product.ratingCount ?? 0;
 
   return (
     <div className="mt-12">
@@ -103,12 +143,14 @@ const ProductDetails = () => {
               .map((_, i) => (
                 <img
                   key={i}
-                  src={i < 4 ? assets.star_icon : assets.star_dull_icon}
+                  src={i < Math.round(averageRating) ? assets.star_icon : assets.star_dull_icon}
                   alt={`Rating ${i + 1}`}
                   className="w-4 h-4"
                 />
               ))}
-            <p className="text-base ml-2 text-gray-500">(4)</p>
+            <p className="text-base ml-2 text-gray-500">
+              ({averageRating.toFixed(1)} · {totalRatings} review{totalRatings === 1 ? "" : "s"})
+            </p>
           </div>
 
           {/* Price */}
@@ -151,6 +193,72 @@ const ProductDetails = () => {
               Buy Now
             </button>
           </div>
+
+          <button
+            onClick={() => {
+              if (!user) {
+                setshowUserLogin(true);
+                return;
+              }
+              setShowRatingModal(true);
+            }}
+            className="mt-4 w-full py-3 border border-primary text-primary hover:bg-primary/10 rounded transition"
+          >
+            Rate & Review Product
+          </button>
+        </div>
+      </div>
+
+      {/* Reviews */}
+      <div className="mt-16">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold text-gray-800">Customer Reviews</h2>
+          <p className="text-sm text-gray-500">
+            Average Rating: <span className="font-medium text-gray-700">{averageRating.toFixed(1)}</span>
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 md:p-6">
+          {loadingRatings ? (
+            <p className="text-gray-500">Loading reviews...</p>
+          ) : productRatings.length === 0 ? (
+            <p className="text-gray-500">No reviews yet. Be the first to review this product.</p>
+          ) : (
+            <div className="space-y-4">
+              {productRatings.map((item) => (
+                <div
+                  key={item._id}
+                  className="border border-gray-100 rounded p-4 bg-gray-50/40"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-gray-800">
+                      {item.userId?.name || "Verified Buyer"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(item.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1.5">
+                    {Array(5)
+                      .fill("")
+                      .map((_, index) => (
+                        <img
+                          key={`${item._id}-${index}`}
+                          src={index < item.rating ? assets.star_icon : assets.star_dull_icon}
+                          alt="rating star"
+                          className="w-3.5 h-3.5"
+                        />
+                      ))}
+                  </div>
+                  {item.review ? (
+                    <p className="text-sm text-gray-600 mt-2">{item.review}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400 mt-2">No written review provided.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -177,8 +285,20 @@ const ProductDetails = () => {
           See More
         </button>
       </div>
+
+      {showRatingModal && (
+        <RatingModal
+          productId={product._id}
+          productName={product.name}
+          productImage={product.image?.[0]}
+          onClose={() => setShowRatingModal(false)}
+          onSaved={() => setRatingRefreshKey((prev) => prev + 1)}
+        />
+      )}
     </div>
   );
 };
 
 export default ProductDetails;
+
+

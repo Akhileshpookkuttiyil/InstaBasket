@@ -226,6 +226,107 @@ export const logoutUser = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Logout successful" });
 });
 
+// Get profile: GET /api/user/profile
+export const getProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select(
+    "name email phone settings createdAt updatedAt"
+  );
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Account not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    profile: user,
+  });
+});
+
+// Update profile: PATCH /api/user/profile
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, phone } = req.body;
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Account not found",
+    });
+  }
+
+  if (typeof name === "string") {
+    user.name = name.trim();
+  }
+  if (typeof phone === "string") {
+    user.phone = phone.trim();
+  }
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    profile: {
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      settings: user.settings || {},
+      updatedAt: user.updatedAt,
+    },
+  });
+});
+
+// Get settings: GET /api/user/settings
+export const getSettings = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("settings");
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Account not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    settings: user.settings || {},
+  });
+});
+
+// Update settings: PATCH /api/user/settings
+export const updateSettings = asyncHandler(async (req, res) => {
+  const allowedKeys = ["marketingEmails", "orderUpdates", "darkMode", "language"];
+  const updatePayload = {};
+
+  for (const key of allowedKeys) {
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+      updatePayload[`settings.${key}`] = req.body[key];
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $set: updatePayload },
+    { new: true }
+  ).select("settings");
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Account not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Settings updated successfully",
+    settings: user.settings || {},
+  });
+});
+
 // Check Auth Status : GET /api/user/auth
 export const checkAuth = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");

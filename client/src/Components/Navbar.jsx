@@ -4,10 +4,11 @@ import { assets } from "../assets/assets";
 import useAuthStore from "../store/useAuthStore";
 import useCartStore from "../store/useCartStore";
 import useProductStore from "../store/useProductStore";
-import { Package, LogOut } from "lucide-react";
+import { Package, LogOut, UserCircle2, MapPinHouse, Settings } from "lucide-react";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   
   const { 
     user, 
@@ -34,6 +35,7 @@ const Navbar = () => {
       const success = await logout();
       if (success) {
         setCartItems({});
+        setUserMenuOpen(false);
         navigate("/");
       }
     }
@@ -59,6 +61,7 @@ const Navbar = () => {
         aria-label="Navigate to homepage"
         onClick={() => {
           setMenuOpen(false);
+          setUserMenuOpen(false);
           setsearchQuery("");
         }}
       >
@@ -195,27 +198,74 @@ const Navbar = () => {
               Login
             </button>
           ) : (
-            <div className="relative group">
-              <img
-                src={assets.profile_icon}
-                alt="User Icon"
-                className="w-10 h-10 rounded-full cursor-pointer"
-              />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="rounded-full"
+                aria-expanded={userMenuOpen}
+                aria-controls="user-dropdown-menu"
+              >
+                <img
+                  src={assets.profile_icon}
+                  alt="User Icon"
+                  className="w-10 h-10 rounded-full cursor-pointer"
+                />
+              </button>
               <ul
+                id="user-dropdown-menu"
                 role="menu"
                 aria-label="User menu"
-                className="hidden group-hover:flex absolute top-10 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-36 rounded-md text-sm z-40 flex-col"
+                className={`absolute top-12 right-0 bg-white shadow-md border border-gray-200 py-2.5 w-48 rounded-md text-sm z-40 flex-col ${
+                  userMenuOpen ? "flex" : "hidden"
+                }`}
               >
                 <li
                   role="menuitem"
-                  onClick={() => navigate("/my-orders")}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/my-orders");
+                  }}
                   className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
                 >
                   <Package size={16} className="text-gray-500" /> My Orders
                 </li>
                 <li
                   role="menuitem"
-                  onClick={handleLogout}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/profile");
+                  }}
+                  className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
+                >
+                  <UserCircle2 size={16} className="text-gray-500" /> Profile
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/my-addresses");
+                  }}
+                  className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
+                >
+                  <MapPinHouse size={16} className="text-gray-500" /> Addresses
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    navigate("/settings");
+                  }}
+                  className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
+                >
+                  <Settings size={16} className="text-gray-500" /> Settings
+                </li>
+                <li
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    handleLogout();
+                  }}
                   className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
                 >
                   <LogOut size={16} className="text-gray-500" /> Log Out
@@ -266,9 +316,20 @@ const Navbar = () => {
             All Products
           </NavLink>
           {user && (
-            <NavLink to="/my-orders" onClick={() => setMenuOpen(false)}>
-              My Orders
-            </NavLink>
+            <>
+              <NavLink to="/my-orders" onClick={() => setMenuOpen(false)}>
+                My Orders
+              </NavLink>
+              <NavLink to="/profile" onClick={() => setMenuOpen(false)}>
+                Profile
+              </NavLink>
+              <NavLink to="/my-addresses" onClick={() => setMenuOpen(false)}>
+                Addresses
+              </NavLink>
+              <NavLink to="/settings" onClick={() => setMenuOpen(false)}>
+                Settings
+              </NavLink>
+            </>
           )}
           <NavLink to="/contact" onClick={() => setMenuOpen(false)}>
             Contact

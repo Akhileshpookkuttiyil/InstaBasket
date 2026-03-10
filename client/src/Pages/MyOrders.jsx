@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import useAuthStore from "../store/useAuthStore";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../shared/lib/apiClient";
+import RatingModal from "../Components/RatingModal";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [ratedProducts, setRatedProducts] = useState(new Set());
+  const [ratingModalData, setRatingModalData] = useState(null);
   
   const { user } = useAuthStore();
   const currency = import.meta.env.VITE_CURRENCY || "$";
@@ -15,7 +18,7 @@ const MyOrders = () => {
   const fetchMyOrders = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/api/order/user");
+      const { data } = await apiClient.get("/api/order/user");
       if (data.success) {
         setOrders(data.orders);
       } else {
@@ -30,10 +33,32 @@ const MyOrders = () => {
 
   useEffect(() => {
     if (!user) {
-      console.log("User not logged in");
       return;
     }
     fetchMyOrders();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchMyRatings = async () => {
+      try {
+        const { data } = await apiClient.get("/api/ratings/my");
+        if (data.success) {
+          setRatedProducts(
+            new Set(
+              (data.ratings || []).map((rating) =>
+                String(rating.productId?._id || rating.productId)
+              )
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch ratings:", err.message);
+      }
+    };
+
+    fetchMyRatings();
   }, [user]);
 
   const getStatusClass = (status) => {
@@ -101,15 +126,17 @@ const MyOrders = () => {
             {items?.map((item, index) => {
               const { product, quantity } = item;
               const isLastItem = items.length !== index + 1;
-              console.log("Item:", item);
 
               const {
-                _id: productId,
+                id: productId,
                 name = "Unknown Product",
                 category = "N/A",
                 image = [],
                 offerPrice = 0,
               } = product || {}; // Fallback if product is null
+
+              const isDelivered = orderStatus === "delivered";
+              const isRated = ratedProducts.has(String(productId));
 
               return (
                 <div
@@ -152,6 +179,20 @@ const MyOrders = () => {
                         day: "numeric",
                       })}
                     </p>
+                    {isDelivered && productId && (
+                      <button
+                        onClick={() =>
+                          setRatingModalData({
+                            productId,
+                            productName: name,
+                            productImage: image?.[0],
+                          })
+                        }
+                        className="mt-2 inline-flex text-xs px-3 py-1.5 rounded border border-primary text-primary hover:bg-primary/10 transition"
+                      >
+                        {isRated ? "Edit Review" : "Rate Product"}
+                      </button>
+                    )}
                   </div>
 
                   <p className="text-primary text-lg font-medium">
@@ -164,6 +205,29 @@ const MyOrders = () => {
           </div>
         );
       })}
+
+      {ratingModalData && (
+        <RatingModal
+          productId={ratingModalData.productId}
+          productName={ratingModalData.productName}
+          productImage={ratingModalData.productImage}
+          onClose={() => setRatingModalData(null)}
+          onSaved={async () => {
+            setRatingModalData(null);
+            await fetchMyOrders();
+            const { data } = await apiClient.get("/api/ratings/my");
+            if (data.success) {
+              setRatedProducts(
+                new Set(
+                  (data.ratings || []).map((rating) =>
+                    String(rating.productId?._id || rating.productId)
+                  )
+                )
+              );
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

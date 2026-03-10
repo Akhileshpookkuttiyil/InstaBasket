@@ -31,6 +31,17 @@ const productSchema = new mongoose.Schema(
       min: [0, "Offer price must be a positive number"],
       default: function() { return this.price; }
     },
+    rating: {
+      type: Number,
+      default: 0,
+      min: [0, "Rating cannot be negative"],
+      max: [5, "Rating cannot exceed 5"],
+    },
+    ratingCount: {
+      type: Number,
+      default: 0,
+      min: [0, "Rating count cannot be negative"],
+    },
     countInStock: {
       type: Number,
       required: true,

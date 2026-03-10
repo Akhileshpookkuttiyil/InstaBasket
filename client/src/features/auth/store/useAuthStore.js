@@ -54,7 +54,13 @@ const useAuthStore = create((set) => ({
     return false;
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (userOrUpdater) =>
+    set((state) => ({
+      user:
+        typeof userOrUpdater === "function"
+          ? userOrUpdater(state.user)
+          : userOrUpdater,
+    })),
 }));
 
 export default useAuthStore;

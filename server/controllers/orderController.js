@@ -174,6 +174,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
             name: item.product.name,
             image: item.product.image,
             offerPrice: item.product.offerPrice,
+            category: item.product.category,
           }
         : null,
     })),
@@ -275,5 +276,4 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     order,
   });
 });
-
 
