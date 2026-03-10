@@ -15,6 +15,7 @@ import cartRouter from "./routes/cartRoute.js";
 import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoutes.js";
 import ratingRouter from "./routes/ratingRoute.js";
+import notificationRouter from "./routes/notificationRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +57,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/ratings", ratingRouter);
+app.use("/api/notifications", notificationRouter);
 
 // Unmatched routes handler (404)
 app.use((req, res) => {

@@ -8,6 +8,7 @@ import ProductCard from "../Components/ProductCard";
 import ProductDetailsSkeleton from "../Components/ProductDetailsSkeleton";
 import RatingModal from "../Components/RatingModal";
 import apiClient from "../shared/lib/apiClient";
+import { UserCircle2 } from "lucide-react";
 
 const ProductDetails = () => {
   const { products } = useProductStore();
@@ -231,9 +232,12 @@ const ProductDetails = () => {
                   className="border border-gray-100 rounded p-4 bg-gray-50/40"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-gray-800">
-                      {item.userId?.name || "Verified Buyer"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <UserCircle2 size={18} className="text-gray-500" />
+                      <p className="font-medium text-gray-800">
+                        {item.userId?.name || "Verified Buyer"}
+                      </p>
+                    </div>
                     <p className="text-xs text-gray-500">
                       {new Date(item.updatedAt).toLocaleDateString()}
                     </p>

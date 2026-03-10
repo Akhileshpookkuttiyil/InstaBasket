@@ -1,14 +1,28 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import useAuthStore from "../store/useAuthStore";
 import useCartStore from "../store/useCartStore";
 import useProductStore from "../store/useProductStore";
-import { Package, LogOut, UserCircle2, MapPinHouse, Settings } from "lucide-react";
+import {
+  Package,
+  LogOut,
+  UserCircle2,
+  MapPinHouse,
+  Settings,
+  Bell,
+  CheckCheck,
+  Circle,
+} from "lucide-react";
+import apiClient from "../shared/lib/apiClient";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   
   const { 
     user, 
@@ -29,6 +43,7 @@ const Navbar = () => {
   } = useProductStore();
   
   const navigate = useNavigate();
+  const userId = user?._id;
 
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to log out?")) {
@@ -36,8 +51,59 @@ const Navbar = () => {
       if (success) {
         setCartItems({});
         setUserMenuOpen(false);
+        setNotificationOpen(false);
+        setNotifications([]);
+        setUnreadCount(0);
         navigate("/");
       }
+    }
+  };
+
+  const fetchNotifications = useCallback(async (showLoader = false) => {
+    if (!userId) return;
+
+    if (showLoader) {
+      setNotificationsLoading(true);
+    }
+
+    try {
+      const { data } = await apiClient.get("/api/notifications/user?limit=12");
+      if (data.success) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error.message);
+    } finally {
+      if (showLoader) {
+        setNotificationsLoading(false);
+      }
+    }
+  }, [userId]);
+
+  const markNotificationRead = async (notificationId) => {
+    try {
+      await apiClient.patch(`/api/notifications/${notificationId}/read`);
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item._id === notificationId ? { ...item, isRead: true } : item
+        )
+      );
+      setUnreadCount((prev) => Math.max(prev - 1, 0));
+    } catch (error) {
+      console.error("Failed to mark notification read:", error.message);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      const { data } = await apiClient.patch("/api/notifications/read-all");
+      if (data.success) {
+        setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to mark all notifications read:", error.message);
     }
   };
 
@@ -48,6 +114,23 @@ const Navbar = () => {
       }
     }
   }, [searchQuery, navigate]);
+
+  useEffect(() => {
+    if (!userId) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationOpen(false);
+      return;
+    }
+
+    fetchNotifications(true);
+
+    const intervalId = setInterval(() => {
+      fetchNotifications(false);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchNotifications, userId]);
 
   return (
     <nav
@@ -167,6 +250,78 @@ const Navbar = () => {
           </span>
         </button>
 
+        {user && (
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Open notifications"
+              onClick={() => {
+                setNotificationOpen((prev) => !prev);
+                setUserMenuOpen(false);
+                fetchNotifications(false);
+              }}
+              className="relative p-1.5 rounded-full hover:bg-gray-100 transition"
+            >
+              <Bell size={20} className="text-gray-700" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 text-[10px] font-medium text-white bg-primary w-[17px] h-[17px] rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationOpen && (
+              <div className="absolute top-12 right-0 w-80 rounded-lg border border-gray-200 bg-white shadow-lg z-50">
+                <div className="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                  <p className="font-medium text-gray-800">Notifications</p>
+                  <button
+                    onClick={markAllNotificationsRead}
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <CheckCheck size={14} />
+                    Mark all read
+                  </button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {notificationsLoading ? (
+                    <p className="px-3 py-4 text-sm text-gray-500">Loading notifications...</p>
+                  ) : notifications.length === 0 ? (
+                    <p className="px-3 py-4 text-sm text-gray-500">No notifications yet.</p>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item._id}
+                        onClick={async () => {
+                          if (!item.isRead) {
+                            await markNotificationRead(item._id);
+                          }
+                          setNotificationOpen(false);
+                          navigate("/my-orders");
+                        }}
+                        className={`w-full text-left px-3 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+                          item.isRead ? "bg-white" : "bg-primary/5"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                          {!item.isRead && (
+                            <Circle size={8} className="fill-primary text-primary mt-1.5 shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">{item.message}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* User Login/Logout */}
         <div className="min-w-[40px] flex items-center justify-center">
           {loading ? (
@@ -201,7 +356,10 @@ const Navbar = () => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setUserMenuOpen((prev) => !prev)}
+                onClick={() => {
+                  setUserMenuOpen((prev) => !prev);
+                  setNotificationOpen(false);
+                }}
                 className="rounded-full"
                 aria-expanded={userMenuOpen}
                 aria-controls="user-dropdown-menu"
@@ -209,7 +367,7 @@ const Navbar = () => {
                 <img
                   src={assets.profile_icon}
                   alt="User Icon"
-                  className="w-10 h-10 rounded-full cursor-pointer"
+                  className="w-8 h-8 rounded-full cursor-pointer"
                 />
               </button>
               <ul
@@ -278,6 +436,25 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div className="flex items-center gap-6 sm:hidden">
+        {user && (
+          <button
+            type="button"
+            aria-label="Open notifications"
+            onClick={() => {
+              setNotificationOpen((prev) => !prev);
+              fetchNotifications(false);
+            }}
+            className="relative cursor-pointer"
+          >
+            <Bell size={20} className="text-gray-700" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 text-[10px] text-white bg-primary w-[16px] h-[16px] rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+        )}
+
         {/* Cart Button */}
         <button
           aria-label="Open cart"
@@ -302,6 +479,52 @@ const Navbar = () => {
           <img src={assets.menu_icon} alt="Menu Icon" />
         </button>
       </div>
+
+      {user && notificationOpen && (
+        <div className="sm:hidden absolute top-[60px] right-2 left-2 rounded-lg border border-gray-200 bg-white shadow-lg z-50">
+          <div className="px-3 py-2.5 border-b border-gray-200 flex items-center justify-between">
+            <p className="font-medium text-gray-800">Notifications</p>
+            <button
+              onClick={markAllNotificationsRead}
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              <CheckCheck size={14} />
+              Mark all read
+            </button>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {notificationsLoading ? (
+              <p className="px-3 py-4 text-sm text-gray-500">Loading notifications...</p>
+            ) : notifications.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-gray-500">No notifications yet.</p>
+            ) : (
+              notifications.map((item) => (
+                <button
+                  key={item._id}
+                  onClick={async () => {
+                    if (!item.isRead) {
+                      await markNotificationRead(item._id);
+                    }
+                    setNotificationOpen(false);
+                    navigate("/my-orders");
+                  }}
+                  className={`w-full text-left px-3 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+                    item.isRead ? "bg-white" : "bg-primary/5"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                    {!item.isRead && (
+                      <Circle size={8} className="fill-primary text-primary mt-1.5 shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">{item.message}</p>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mobile Menu */}
       {menuOpen && (

@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import stripe from "stripe";
 import asyncHandler from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
+import { createUserNotification } from "../utils/notification.js";
 
 const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 const TAX_RATE = 0.02;
@@ -58,6 +59,17 @@ export const placeOrderStripe = asyncHandler(async (req, res) => {
     paymentMethod,
     totalAmount,
     isPaid: false,
+  });
+
+  await createUserNotification({
+    userId,
+    title: "Order created",
+    message: `Your order #${order._id.toString().slice(-6).toUpperCase()} is created and awaiting payment.`,
+    type: "order",
+    meta: {
+      orderId: order._id,
+      status: order.orderStatus,
+    },
   });
 
   const customer = await stripeInstance.customers.create({
@@ -138,6 +150,17 @@ export const placeOrderCOD = asyncHandler(async (req, res) => {
     paymentMethod: "COD",
     isPaid: false,
     orderStatus: "order placed",
+  });
+
+  await createUserNotification({
+    userId,
+    title: "Order placed successfully",
+    message: `Your order #${order._id.toString().slice(-6).toUpperCase()} has been placed.`,
+    type: "order",
+    meta: {
+      orderId: order._id,
+      status: order.orderStatus,
+    },
   });
 
   res.status(201).json({
@@ -267,8 +290,32 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
+  const previousStatus = order.orderStatus;
   order.orderStatus = orderStatus;
   await order.save();
+
+  if (previousStatus !== orderStatus) {
+    const statusMessages = {
+      "order placed": "Your order has been placed and is being processed.",
+      shipped: "Your order has been shipped.",
+      delivered: "Your order was delivered successfully.",
+      cancelled: "Your order has been cancelled.",
+      returned: "Your order return has been processed.",
+    };
+
+    await createUserNotification({
+      userId: order.userId,
+      title: "Order status updated",
+      message:
+        statusMessages[orderStatus] ||
+        `Your order status is now "${orderStatus}".`,
+      type: "order",
+      meta: {
+        orderId: order._id,
+        status: orderStatus,
+      },
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -276,4 +323,3 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     order,
   });
 });
-
