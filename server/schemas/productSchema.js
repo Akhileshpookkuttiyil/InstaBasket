@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+
 export const addProductSchema = z.object({
   body: z.object({
     productData: z.object({
@@ -15,14 +17,14 @@ export const addProductSchema = z.object({
 
 export const changeStockSchema = z.object({
   body: z.object({
-    id: z.string().min(1, "Product ID is required"),
+    id: z.string().regex(objectIdRegex, "Invalid product id"),
     inStock: z.boolean(),
   })
 });
 
 export const updateProductSchema = z.object({
   params: z.object({
-    id: z.string().min(1, "Product ID is required"),
+    id: z.string().regex(objectIdRegex, "Invalid product id"),
   }),
   body: z.object({
     name: z.string().min(3, "Name must be at least 3 characters"),

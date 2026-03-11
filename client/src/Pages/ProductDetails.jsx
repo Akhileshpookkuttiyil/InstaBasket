@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import useProductStore from "../store/useProductStore";
 import useCartStore from "../store/useCartStore";
 import useAuthStore from "../store/useAuthStore";
@@ -15,6 +15,7 @@ const DEFAULT_STAR_DISTRIBUTION = [5, 4, 3, 2, 1].map((stars) => ({
   count: 0,
   percentage: 0,
 }));
+const REVIEWS_PAGE_SIZE = 8;
 
 const ProductDetails = () => {
   const { products } = useProductStore();
@@ -34,6 +35,9 @@ const ProductDetails = () => {
     distribution: DEFAULT_STAR_DISTRIBUTION,
   });
   const [loadingRatings, setLoadingRatings] = useState(true);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingRefreshKey, setRatingRefreshKey] = useState(0);
 
@@ -61,37 +65,65 @@ const ProductDetails = () => {
     }
   }, [products, product]);
 
-  useEffect(() => {
-    const fetchRatings = async () => {
+  const fetchRatings = useCallback(
+    async ({ page = 1, append = false, includeSummary = true, includePagination = true } = {}) => {
       if (!product?._id) return;
 
       try {
-        setLoadingRatings(true);
+        if (append) {
+          setLoadingMoreReviews(true);
+        } else {
+          setLoadingRatings(true);
+        }
+
         const { data } = await apiClient.get(
-          `/api/ratings/product/${product._id}?page=1&limit=8`
+          `/api/ratings/product/${product._id}?page=${page}&limit=${REVIEWS_PAGE_SIZE}&includeSummary=${includeSummary}&includePagination=${includePagination}`
         );
 
         if (data.success) {
-          setProductRatings(data.ratings || []);
-          const summary = data.summary || {};
-          setRatingSummary({
-            averageRating: summary.averageRating || 0,
-            totalRatings: summary.totalRatings || 0,
-            distribution:
-              Array.isArray(summary.distribution) && summary.distribution.length === 5
-                ? summary.distribution
-                : DEFAULT_STAR_DISTRIBUTION,
-          });
+          const fetchedRatings = data.ratings || [];
+          setProductRatings((previousRatings) =>
+            append ? [...previousRatings, ...fetchedRatings] : fetchedRatings
+          );
+
+          if (includeSummary && data.summary) {
+            const summary = data.summary;
+            setRatingSummary({
+              averageRating: summary.averageRating || 0,
+              totalRatings: summary.totalRatings || 0,
+              distribution:
+                Array.isArray(summary.distribution) && summary.distribution.length === 5
+                  ? summary.distribution
+                  : DEFAULT_STAR_DISTRIBUTION,
+            });
+          }
+
+          const apiHasMore = data.pagination?.hasMore;
+          setHasMoreReviews(
+            typeof apiHasMore === "boolean"
+              ? apiHasMore
+              : fetchedRatings.length === REVIEWS_PAGE_SIZE
+          );
+          setReviewsPage(page);
         }
       } catch (error) {
         console.error("Failed to fetch ratings:", error.message);
       } finally {
         setLoadingRatings(false);
+        setLoadingMoreReviews(false);
       }
-    };
+    },
+    [product?._id]
+  );
 
-    fetchRatings();
-  }, [product?._id, ratingRefreshKey]);
+  useEffect(() => {
+    fetchRatings({
+      page: 1,
+      append: false,
+      includeSummary: true,
+      includePagination: true,
+    });
+  }, [fetchRatings, ratingRefreshKey]);
 
   if (loading) {
     return <ProductDetailsSkeleton />;
@@ -112,6 +144,18 @@ const ProductDetails = () => {
     Array.isArray(ratingSummary.distribution) && ratingSummary.distribution.length === 5
       ? ratingSummary.distribution
       : DEFAULT_STAR_DISTRIBUTION;
+  const handleLoadMoreReviews = () => {
+    if (loadingRatings || loadingMoreReviews || !hasMoreReviews) {
+      return;
+    }
+
+    fetchRatings({
+      page: reviewsPage + 1,
+      append: true,
+      includeSummary: false,
+      includePagination: false,
+    });
+  };
 
   return (
     <div className="mt-12">
@@ -281,43 +325,57 @@ const ProductDetails = () => {
           ) : productRatings.length === 0 ? (
             <p className="text-gray-500">No reviews yet. Be the first to review this product.</p>
           ) : (
-            <div className="space-y-4">
-              {productRatings.map((item) => (
-                <div
-                  key={item._id}
-                  className="border border-gray-100 rounded p-4 bg-gray-50/40"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <UserCircle2 size={18} className="text-gray-500" />
-                      <p className="font-medium text-gray-800">
-                        {item.userId?.name || "Verified Buyer"}
+            <>
+              <div className="space-y-4">
+                {productRatings.map((item) => (
+                  <div
+                    key={item._id}
+                    className="border border-gray-100 rounded p-4 bg-gray-50/40"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <UserCircle2 size={18} className="text-gray-500" />
+                        <p className="font-medium text-gray-800">
+                          {item.userId?.name || "Verified Buyer"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {new Date(item.updatedAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      {new Date(item.updatedAt).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {Array(5)
+                        .fill("")
+                        .map((_, index) => (
+                          <img
+                            key={`${item._id}-${index}`}
+                            src={index < item.rating ? assets.star_icon : assets.star_dull_icon}
+                            alt="rating star"
+                            className="w-3.5 h-3.5"
+                          />
+                        ))}
+                    </div>
+                    {item.review ? (
+                      <p className="text-sm text-gray-600 mt-2">{item.review}</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-2">No written review provided.</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 mt-1.5">
-                    {Array(5)
-                      .fill("")
-                      .map((_, index) => (
-                        <img
-                          key={`${item._id}-${index}`}
-                          src={index < item.rating ? assets.star_icon : assets.star_dull_icon}
-                          alt="rating star"
-                          className="w-3.5 h-3.5"
-                        />
-                      ))}
-                  </div>
-                  {item.review ? (
-                    <p className="text-sm text-gray-600 mt-2">{item.review}</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-2">No written review provided.</p>
-                  )}
+                ))}
+              </div>
+
+              {hasMoreReviews && (
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={handleLoadMoreReviews}
+                    disabled={loadingMoreReviews}
+                    className="px-6 py-2 border border-primary text-primary rounded hover:bg-primary/10 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loadingMoreReviews ? "Loading..." : "Load More Reviews"}
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -360,5 +418,3 @@ const ProductDetails = () => {
 };
 
 export default ProductDetails;
-
-

@@ -26,6 +26,14 @@ import {
   updateProductSchema,
   changeStockSchema,
 } from "../schemas/productSchema.js";
+import {
+  sellerOrderFiltersSchema,
+  updateOrderStatusSchema,
+} from "../schemas/orderSchema.js";
+import {
+  sellerUsersQuerySchema,
+  updateSellerUserStatusSchema,
+} from "../schemas/sellerSchema.js";
 
 const sellerRouter = express.Router();
 
@@ -38,12 +46,22 @@ sellerRouter.get("/summary", authSeller, getSellerSummary);
 sellerRouter.get("/dashboard", authSeller, getSellerSummary);
 
 // User Management
-sellerRouter.get("/users", authSeller, getSellerUsers);
-sellerRouter.patch("/users/:id/status", authSeller, updateUserStatus);
+sellerRouter.get("/users", authSeller, validate(sellerUsersQuerySchema), getSellerUsers);
+sellerRouter.patch(
+  "/users/:id/status",
+  authSeller,
+  validate(updateSellerUserStatusSchema),
+  updateUserStatus
+);
 
 // Order Management
-sellerRouter.get("/orders", authSeller, getAllOrders);
-sellerRouter.patch("/orders/:id/status", authSeller, updateOrderStatus);
+sellerRouter.get("/orders", authSeller, validate(sellerOrderFiltersSchema), getAllOrders);
+sellerRouter.patch(
+  "/orders/:id/status",
+  authSeller,
+  validate(updateOrderStatusSchema),
+  updateOrderStatus
+);
 
 // Product Management
 sellerRouter.get("/products", authSeller, getAllProducts);

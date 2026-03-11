@@ -15,6 +15,17 @@ const MANAGEABLE_ORDER_STATUSES = [
   "cancelled",
   "returned",
 ];
+const ORDER_STATUS_TRANSITIONS = {
+  "order initiated": ["order placed", "cancelled"],
+  "order placed": ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: ["returned"],
+  cancelled: [],
+  returned: [],
+};
+
+const getAllowedNextStatuses = (currentStatus) =>
+  ORDER_STATUS_TRANSITIONS[currentStatus] || [];
 
 // Place order with Stripe : POST /api/order/placeorderstripe
 export const placeOrderStripe = asyncHandler(async (req, res) => {
@@ -266,7 +277,9 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { orderStatus } = req.body;
+  const nextStatus = String(req.body?.orderStatus || "")
+    .trim()
+    .toLowerCase();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({
@@ -275,7 +288,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  if (!MANAGEABLE_ORDER_STATUSES.includes(orderStatus)) {
+  if (!MANAGEABLE_ORDER_STATUSES.includes(nextStatus)) {
     return res.status(400).json({
       success: false,
       message: "Invalid order status",
@@ -291,10 +304,35 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   }
 
   const previousStatus = order.orderStatus;
-  order.orderStatus = orderStatus;
+  if (previousStatus === nextStatus) {
+    return res.status(200).json({
+      success: true,
+      message: "Order status already up to date",
+      order,
+      allowedNextStatuses: getAllowedNextStatuses(previousStatus),
+    });
+  }
+
+  if (order.paymentMethod === "Online" && !order.isPaid) {
+    return res.status(409).json({
+      success: false,
+      message: "Unpaid online orders cannot be status-updated",
+    });
+  }
+
+  const allowedNextStatuses = getAllowedNextStatuses(previousStatus);
+  if (!allowedNextStatuses.includes(nextStatus)) {
+    return res.status(409).json({
+      success: false,
+      message: `Status cannot move from "${previousStatus}" to "${nextStatus}"`,
+      allowedNextStatuses,
+    });
+  }
+
+  order.orderStatus = nextStatus;
   await order.save();
 
-  if (previousStatus !== orderStatus) {
+  if (previousStatus !== nextStatus) {
     const statusMessages = {
       "order placed": "Your order has been placed and is being processed.",
       shipped: "Your order has been shipped.",
@@ -307,12 +345,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
       userId: order.userId,
       title: "Order status updated",
       message:
-        statusMessages[orderStatus] ||
-        `Your order status is now "${orderStatus}".`,
+        statusMessages[nextStatus] ||
+        `Your order status is now "${nextStatus}".`,
       type: "order",
       meta: {
         orderId: order._id,
-        status: orderStatus,
+        status: nextStatus,
       },
     });
   }
@@ -321,5 +359,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     success: true,
     message: "Order status updated",
     order,
+    allowedNextStatuses: getAllowedNextStatuses(nextStatus),
   });
 });

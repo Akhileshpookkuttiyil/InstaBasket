@@ -102,66 +102,92 @@ export const getProductRatings = asyncHandler(async (req, res) => {
   const page = Math.max(Number(req.query.page || 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 50);
   const skip = (page - 1) * limit;
+  const includeSummary = req.query.includeSummary !== "false";
+  const includePagination = req.query.includePagination !== "false";
+  const ratingFilter = { productId: productObjectId, isVerifiedBuyer: true };
+  const shouldCountTotal = includeSummary || includePagination;
 
-  const [ratings, total, aggregatedStarCounts] = await Promise.all([
-    Rating.find({ productId: productObjectId, isVerifiedBuyer: true })
+  const [ratings, totalRatingsCount, aggregatedStarCounts, product] = await Promise.all([
+    Rating.find(ratingFilter)
       .populate("userId", "name")
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Rating.countDocuments({ productId: productObjectId, isVerifiedBuyer: true }),
-    Rating.aggregate([
-      {
-        $match: { productId: productObjectId, isVerifiedBuyer: true },
-      },
-      {
-        $group: {
-          _id: "$rating",
-          count: { $sum: 1 },
-        },
-      },
-    ]),
+    shouldCountTotal ? Rating.countDocuments(ratingFilter) : null,
+    includeSummary
+      ? Rating.aggregate([
+          {
+            $match: ratingFilter,
+          },
+          {
+            $group: {
+              _id: "$rating",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [],
+    includeSummary ? Product.findById(productObjectId).select("rating ratingCount").lean() : null,
   ]);
+  const total = totalRatingsCount || 0;
 
-  const product = await Product.findById(productObjectId).select("rating ratingCount");
-  const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let summary;
+  if (includeSummary) {
+    const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
-  aggregatedStarCounts.forEach(({ _id, count }) => {
-    if (starCounts[_id] !== undefined) {
-      starCounts[_id] = count;
-    }
-  });
+    aggregatedStarCounts.forEach(({ _id, count }) => {
+      if (starCounts[_id] !== undefined) {
+        starCounts[_id] = count;
+      }
+    });
 
-  const starDistribution = [5, 4, 3, 2, 1].map((stars) => {
-    const count = starCounts[stars];
-    return {
-      stars,
-      count,
-      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    const starDistribution = [5, 4, 3, 2, 1].map((stars) => {
+      const count = starCounts[stars];
+      return {
+        stars,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      };
+    });
+
+    const weightedTotal = starDistribution.reduce(
+      (sum, bucket) => sum + bucket.stars * bucket.count,
+      0
+    );
+    const averageFromRatings = total > 0 ? Number((weightedTotal / total).toFixed(1)) : 0;
+    const averageRating = product?.rating || averageFromRatings;
+
+    summary = {
+      averageRating,
+      totalRatings: total,
+      distribution: starDistribution,
     };
-  });
-  const weightedTotal = starDistribution.reduce(
-    (sum, bucket) => sum + bucket.stars * bucket.count,
-    0
-  );
-  const averageFromRatings = total > 0 ? Number((weightedTotal / total).toFixed(1)) : 0;
-  const averageRating = product?.rating || averageFromRatings;
+  }
+
+  let pagination;
+  if (includePagination) {
+    const totalPages = Math.ceil(total / limit) || 1;
+    pagination = {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasMore: page < totalPages,
+    };
+  } else {
+    pagination = {
+      page,
+      limit,
+      hasMore: ratings.length === limit,
+    };
+  }
 
   res.status(200).json({
     success: true,
     ratings,
-    summary: {
-      averageRating,
-      totalRatings: total,
-      distribution: starDistribution,
-    },
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit) || 1,
-    },
+    summary,
+    pagination,
   });
 });
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
 import {
@@ -29,6 +29,14 @@ const ORDER_STATUSES = [
   "cancelled",
   "returned",
 ];
+const ORDER_STATUS_TRANSITIONS = {
+  "order initiated": ["order placed", "cancelled"],
+  "order placed": ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: ["returned"],
+  cancelled: [],
+  returned: [],
+};
 
 const formatAddress = (shippingAddress) => {
   if (!shippingAddress) return "N/A";
@@ -45,6 +53,15 @@ const formatAddress = (shippingAddress) => {
     .join(", ");
 };
 
+const getAllowedStatusOptions = (currentStatus) => {
+  const nextStatuses = ORDER_STATUS_TRANSITIONS[currentStatus] || [];
+  const uniqueStatuses = Array.from(
+    new Set([currentStatus, ...nextStatuses].filter(Boolean))
+  );
+
+  return uniqueStatuses.length > 0 ? uniqueStatuses : ORDER_STATUSES;
+};
+
 const Orders = () => {
   const currency = import.meta.env.VITE_CURRENCY || "$";
   const [orders, setOrders] = useState([]);
@@ -58,7 +75,7 @@ const Orders = () => {
     dateTo: "",
   });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await apiClient.get("/api/seller/orders", {
@@ -82,14 +99,14 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchOrders();
     }, 250);
     return () => clearTimeout(timer);
-  }, [filters]);
+  }, [fetchOrders]);
 
   const updateStatus = async (orderId, orderStatus) => {
     try {
@@ -289,7 +306,7 @@ const Orders = () => {
                     disabled={statusUpdatingId === order._id}
                     className="mt-1 w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-60"
                   >
-                    {ORDER_STATUSES.map((status) => (
+                    {getAllowedStatusOptions(order.orderStatus).map((status) => (
                       <option key={status} value={status}>
                         {status}
                       </option>
