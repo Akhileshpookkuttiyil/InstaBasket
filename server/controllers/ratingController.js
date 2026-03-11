@@ -91,28 +91,70 @@ export const upsertRating = asyncHandler(async (req, res) => {
 
 export const getProductRatings = asyncHandler(async (req, res) => {
   const { productId } = req.params;
+  if (!mongoose.isValidObjectId(productId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid product id",
+    });
+  }
+
+  const productObjectId = ensureObjectId(productId);
   const page = Math.max(Number(req.query.page || 1), 1);
   const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 50);
   const skip = (page - 1) * limit;
 
-  const [ratings, total] = await Promise.all([
-    Rating.find({ productId, isVerifiedBuyer: true })
+  const [ratings, total, groupedBreakdown] = await Promise.all([
+    Rating.find({ productId: productObjectId, isVerifiedBuyer: true })
       .populate("userId", "name")
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
-    Rating.countDocuments({ productId, isVerifiedBuyer: true }),
+    Rating.countDocuments({ productId: productObjectId, isVerifiedBuyer: true }),
+    Rating.aggregate([
+      {
+        $match: { productId: productObjectId, isVerifiedBuyer: true },
+      },
+      {
+        $group: {
+          _id: "$rating",
+          count: { $sum: 1 },
+        },
+      },
+    ]),
   ]);
 
-  const product = await Product.findById(productId).select("rating ratingCount");
+  const product = await Product.findById(productObjectId).select("rating ratingCount");
+  const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+  groupedBreakdown.forEach(({ _id, count }) => {
+    if (starCounts[_id] !== undefined) {
+      starCounts[_id] = count;
+    }
+  });
+
+  const distribution = [5, 4, 3, 2, 1].map((stars) => {
+    const count = starCounts[stars];
+    return {
+      stars,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    };
+  });
+  const weightedTotal = distribution.reduce(
+    (sum, bucket) => sum + bucket.stars * bucket.count,
+    0
+  );
+  const averageFromRatings = total > 0 ? Number((weightedTotal / total).toFixed(1)) : 0;
+  const averageRating = product?.rating || averageFromRatings;
 
   res.status(200).json({
     success: true,
     ratings,
     summary: {
-      averageRating: product?.rating || 0,
-      totalRatings: product?.ratingCount || 0,
+      averageRating,
+      totalRatings: total,
+      distribution,
     },
     pagination: {
       page,

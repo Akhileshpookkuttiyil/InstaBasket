@@ -10,6 +10,12 @@ import RatingModal from "../Components/RatingModal";
 import apiClient from "../shared/lib/apiClient";
 import { UserCircle2 } from "lucide-react";
 
+const EMPTY_DISTRIBUTION = [5, 4, 3, 2, 1].map((stars) => ({
+  stars,
+  count: 0,
+  percentage: 0,
+}));
+
 const ProductDetails = () => {
   const { products } = useProductStore();
   const { addToCart } = useCartStore();
@@ -25,6 +31,7 @@ const ProductDetails = () => {
   const [ratingSummary, setRatingSummary] = useState({
     averageRating: 0,
     totalRatings: 0,
+    distribution: EMPTY_DISTRIBUTION,
   });
   const [loadingRatings, setLoadingRatings] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -66,7 +73,15 @@ const ProductDetails = () => {
 
         if (data.success) {
           setProductRatings(data.ratings || []);
-          setRatingSummary(data.summary || { averageRating: 0, totalRatings: 0 });
+          const summary = data.summary || {};
+          setRatingSummary({
+            averageRating: summary.averageRating || 0,
+            totalRatings: summary.totalRatings || 0,
+            distribution:
+              Array.isArray(summary.distribution) && summary.distribution.length === 5
+                ? summary.distribution
+                : EMPTY_DISTRIBUTION,
+          });
         }
       } catch (error) {
         console.error("Failed to fetch ratings:", error.message);
@@ -93,6 +108,10 @@ const ProductDetails = () => {
 
   const averageRating = ratingSummary.averageRating ?? product.rating ?? 0;
   const totalRatings = ratingSummary.totalRatings ?? product.ratingCount ?? 0;
+  const ratingDistribution =
+    Array.isArray(ratingSummary.distribution) && ratingSummary.distribution.length === 5
+      ? ratingSummary.distribution
+      : EMPTY_DISTRIBUTION;
 
   return (
     <div className="mt-12">
@@ -220,6 +239,43 @@ const ProductDetails = () => {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 md:p-6">
+          <div className="grid gap-5 md:grid-cols-[220px_1fr] border-b border-gray-100 pb-5 mb-5">
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">Overall Rating</p>
+              <p className="text-3xl font-semibold text-gray-800 mt-1">{averageRating.toFixed(1)}</p>
+              <div className="flex items-center gap-1 mt-2">
+                {Array(5)
+                  .fill("")
+                  .map((_, i) => (
+                    <img
+                      key={`summary-star-${i}`}
+                      src={i < Math.round(averageRating) ? assets.star_icon : assets.star_dull_icon}
+                      alt="rating star"
+                      className="w-4 h-4"
+                    />
+                  ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {totalRatings} verified rating{totalRatings === 1 ? "" : "s"}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {ratingDistribution.map((row) => (
+                <div key={`distribution-${row.stars}`} className="grid grid-cols-[52px_1fr_36px] items-center gap-3">
+                  <p className="text-sm text-gray-600">{row.stars} star</p>
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${row.percentage}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 text-right">{row.count}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {loadingRatings ? (
             <p className="text-gray-500">Loading reviews...</p>
           ) : productRatings.length === 0 ? (
