@@ -72,7 +72,7 @@ const SellerLayout = () => {
       <div className="flex bg-gray-50/60">
         {/* Sidebar */}
         <nav className="md:w-64 w-16 border-r h-[95vh] border-gray-200 bg-white pt-4 flex flex-col">
-          {sidebarLinks.map(({ name, path, icon: Icon }) => (
+          {sidebarLinks.map(({ name, path, icon }) => (
             <NavLink
               to={path}
               key={name}
@@ -85,7 +85,7 @@ const SellerLayout = () => {
                 }`
               }
             >
-              <Icon size={20} strokeWidth={2} />
+              {React.createElement(icon, { size: 20, strokeWidth: 2 })}
               <p className="md:block hidden font-medium">{name}</p>
             </NavLink>
           ))}

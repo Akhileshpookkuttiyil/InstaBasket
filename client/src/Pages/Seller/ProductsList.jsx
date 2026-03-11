@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { categories } from "../../assets/assets";
-import useProductStore from "../../store/useProductStore";
 import apiClient from "../../shared/lib/apiClient";
 import {
   Search,

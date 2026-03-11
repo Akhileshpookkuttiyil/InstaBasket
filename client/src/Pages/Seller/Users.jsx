@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
 import {
@@ -18,7 +18,7 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState("");
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await apiClient.get("/api/seller/users", {
@@ -34,14 +34,14 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchUsers();
     }, 250);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [fetchUsers]);
 
   const toggleUserStatus = async (user) => {
     try {

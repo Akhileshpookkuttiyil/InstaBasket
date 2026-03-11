@@ -24,10 +24,28 @@ export default [
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'axios',
+              message:
+                'Use shared apiClient from src/shared/lib/apiClient for app API calls.',
+            },
+          ],
+        },
+      ],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
+    },
+  },
+  {
+    files: ['src/shared/lib/apiClient.js'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ]

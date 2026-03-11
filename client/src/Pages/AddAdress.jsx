@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { assets } from "../assets/assets";
 import useAuthStore from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import toast from "react-hot-toast";
+import apiClient from "../shared/lib/apiClient";
 
 // Controlled reusable input field
 const InputField = ({
@@ -79,7 +79,7 @@ const AddAddress = () => {
 
     setIsSubmitting(true);
     try {
-      const { data } = await axios.post("/api/address/add", { address });
+      const { data } = await apiClient.post("/api/address/add", { address });
       if (data.success) {
         toast.success(data.message || "Address saved!");
         navigate("/cart");
