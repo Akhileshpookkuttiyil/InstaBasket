@@ -103,7 +103,7 @@ export const getProductRatings = asyncHandler(async (req, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit || 10), 1), 50);
   const skip = (page - 1) * limit;
 
-  const [ratings, total, groupedBreakdown] = await Promise.all([
+  const [ratings, total, aggregatedStarCounts] = await Promise.all([
     Rating.find({ productId: productObjectId, isVerifiedBuyer: true })
       .populate("userId", "name")
       .sort({ updatedAt: -1 })
@@ -127,13 +127,13 @@ export const getProductRatings = asyncHandler(async (req, res) => {
   const product = await Product.findById(productObjectId).select("rating ratingCount");
   const starCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
-  groupedBreakdown.forEach(({ _id, count }) => {
+  aggregatedStarCounts.forEach(({ _id, count }) => {
     if (starCounts[_id] !== undefined) {
       starCounts[_id] = count;
     }
   });
 
-  const distribution = [5, 4, 3, 2, 1].map((stars) => {
+  const starDistribution = [5, 4, 3, 2, 1].map((stars) => {
     const count = starCounts[stars];
     return {
       stars,
@@ -141,7 +141,7 @@ export const getProductRatings = asyncHandler(async (req, res) => {
       percentage: total > 0 ? Math.round((count / total) * 100) : 0,
     };
   });
-  const weightedTotal = distribution.reduce(
+  const weightedTotal = starDistribution.reduce(
     (sum, bucket) => sum + bucket.stars * bucket.count,
     0
   );
@@ -154,7 +154,7 @@ export const getProductRatings = asyncHandler(async (req, res) => {
     summary: {
       averageRating,
       totalRatings: total,
-      distribution,
+      distribution: starDistribution,
     },
     pagination: {
       page,

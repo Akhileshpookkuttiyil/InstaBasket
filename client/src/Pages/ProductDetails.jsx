@@ -10,7 +10,7 @@ import RatingModal from "../Components/RatingModal";
 import apiClient from "../shared/lib/apiClient";
 import { UserCircle2 } from "lucide-react";
 
-const EMPTY_DISTRIBUTION = [5, 4, 3, 2, 1].map((stars) => ({
+const DEFAULT_STAR_DISTRIBUTION = [5, 4, 3, 2, 1].map((stars) => ({
   stars,
   count: 0,
   percentage: 0,
@@ -31,7 +31,7 @@ const ProductDetails = () => {
   const [ratingSummary, setRatingSummary] = useState({
     averageRating: 0,
     totalRatings: 0,
-    distribution: EMPTY_DISTRIBUTION,
+    distribution: DEFAULT_STAR_DISTRIBUTION,
   });
   const [loadingRatings, setLoadingRatings] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -80,7 +80,7 @@ const ProductDetails = () => {
             distribution:
               Array.isArray(summary.distribution) && summary.distribution.length === 5
                 ? summary.distribution
-                : EMPTY_DISTRIBUTION,
+                : DEFAULT_STAR_DISTRIBUTION,
           });
         }
       } catch (error) {
@@ -111,7 +111,7 @@ const ProductDetails = () => {
   const ratingDistribution =
     Array.isArray(ratingSummary.distribution) && ratingSummary.distribution.length === 5
       ? ratingSummary.distribution
-      : EMPTY_DISTRIBUTION;
+      : DEFAULT_STAR_DISTRIBUTION;
 
   return (
     <div className="mt-12">
