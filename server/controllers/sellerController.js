@@ -54,6 +54,10 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
       { orderStatus: { $ne: "cancelled" } },
     ],
   };
+  const lowStockCriteria = { countInStock: { $gt: 0, $lte: 5 } };
+  const outOfStockCriteria = {
+    $or: [{ countInStock: { $lte: 0 } }, { inStock: false }],
+  };
 
   const [
     totalUsers,
@@ -62,6 +66,9 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
     totalProducts,
     inStockProducts,
     lowStockProducts,
+    outOfStockProducts,
+    lowStockAlerts,
+    outOfStockAlerts,
     totalOrders,
     pendingOrders,
     deliveredOrders,
@@ -75,8 +82,19 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
     }),
     User.countDocuments({ isActive: false }),
     Product.countDocuments(),
-    Product.countDocuments({ inStock: true }),
-    Product.countDocuments({ countInStock: { $lte: 5 }, inStock: true }),
+    Product.countDocuments({ inStock: true, countInStock: { $gt: 0 } }),
+    Product.countDocuments(lowStockCriteria),
+    Product.countDocuments(outOfStockCriteria),
+    Product.find(lowStockCriteria)
+      .select("_id name countInStock inStock")
+      .sort({ countInStock: 1, updatedAt: -1 })
+      .limit(8)
+      .lean(),
+    Product.find(outOfStockCriteria)
+      .select("_id name countInStock inStock")
+      .sort({ updatedAt: -1 })
+      .limit(8)
+      .lean(),
     Order.countDocuments(orderMatch),
     Order.countDocuments({ ...orderMatch, orderStatus: { $in: ["order placed", "shipped"] } }),
     Order.countDocuments({ ...orderMatch, orderStatus: "delivered" }),
@@ -115,6 +133,9 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
       totalProducts,
       inStockProducts,
       lowStockProducts,
+      outOfStockProducts,
+      lowStockAlerts,
+      outOfStockAlerts,
       totalOrders,
       pendingOrders,
       deliveredOrders,

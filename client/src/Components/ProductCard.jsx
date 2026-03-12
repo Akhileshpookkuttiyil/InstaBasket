@@ -13,6 +13,9 @@ const ProductCard = ({ product }) => {
   if (!product) return null;
 
   const itemQuantity = cartItems?.[product._id] || 0;
+  const stockCount = Number(product?.countInStock || 0);
+  const isOutOfStock = !product?.inStock || stockCount <= 0;
+  const isAtMaxStock = stockCount > 0 && itemQuantity >= stockCount;
   const mrp = Number(product?.price || 0);
   const offer = Number(product?.offerPrice || 0);
   const discountPercent =
@@ -38,7 +41,7 @@ const ProductCard = ({ product }) => {
             {discountPercent}% OFF
           </span>
         )}
-        {!product?.inStock && (
+        {isOutOfStock && (
           <span className="absolute right-3 top-3 z-10 rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-medium text-white">
             Out of stock
           </span>
@@ -92,7 +95,7 @@ const ProductCard = ({ product }) => {
           </div>
 
           <div onClick={(e) => e.stopPropagation()} className="text-primary">
-            {!itemQuantity ? (product?.inStock ? (
+            {!itemQuantity ? (!isOutOfStock ? (
               <button
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dull"
                 onClick={() => {
@@ -130,7 +133,8 @@ const ProductCard = ({ product }) => {
                   onClick={() => {
                     addToCart(product._id, user);
                   }}
-                  className="h-full px-2.5 text-base font-semibold hover:bg-primary/20"
+                  disabled={isOutOfStock || isAtMaxStock}
+                  className="h-full px-2.5 text-base font-semibold hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   +
                 </button>

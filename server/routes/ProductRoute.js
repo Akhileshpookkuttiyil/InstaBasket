@@ -1,17 +1,20 @@
 import express from "express";
 import { upload } from "../configs/multer.js";
 import authSeller from "../middlewares/authSeller.js";
+import authUser from "../middlewares/authUser.js";
 import {
   addProduct,
   changeStock,
   getAllProducts,
   getSingleProduct,
+  subscribeStockNotification,
   updateProduct,
 } from "../controllers/productController.js";
 import validate from "../middlewares/validate.js";
 import {
   addProductSchema,
   changeStockSchema,
+  subscribeStockNotificationSchema,
   updateProductSchema,
 } from "../schemas/productSchema.js";
 
@@ -27,6 +30,13 @@ productRouter.post(
 );
 
 productRouter.get("/all", getAllProducts);
+
+productRouter.post(
+  "/:id/notify",
+  authUser,
+  validate(subscribeStockNotificationSchema),
+  subscribeStockNotification
+);
 
 productRouter.get("/:id", authSeller, getSingleProduct);
 

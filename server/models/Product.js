@@ -49,8 +49,16 @@ const productSchema = new mongoose.Schema(
     },
     inStock: {
       type: Boolean,
-      default: true, // Default to true, indicating the product is in stock
+      default: function () {
+        return Number(this.countInStock || 0) > 0;
+      },
     },
+    stockSubscribers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+      },
+    ],
     expiryDate: {
       type: Date, // Expiry date for perishable products (optional)
       required: false,
@@ -60,6 +68,13 @@ const productSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt fields
   }
 );
+
+productSchema.pre("save", function (next) {
+  if (Number(this.countInStock || 0) <= 0) {
+    this.inStock = false;
+  }
+  next();
+});
 
 // Virtual field to check if the product is expired (for perishable goods)
 productSchema.virtual("isExpired").get(function () {

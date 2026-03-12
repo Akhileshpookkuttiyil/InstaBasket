@@ -9,6 +9,7 @@ import ProductDetailsSkeleton from "../Components/ProductDetailsSkeleton";
 import RatingModal from "../Components/RatingModal";
 import apiClient from "../shared/lib/apiClient";
 import { UserCircle2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 const DEFAULT_STAR_DISTRIBUTION = [5, 4, 3, 2, 1].map((stars) => ({
   stars,
@@ -40,6 +41,7 @@ const ProductDetails = () => {
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingRefreshKey, setRatingRefreshKey] = useState(0);
+  const [subscribingStockAlert, setSubscribingStockAlert] = useState(false);
 
   const product = products.find((item) => item._id === id);
 
@@ -140,10 +142,45 @@ const ProductDetails = () => {
 
   const averageRating = ratingSummary.averageRating ?? product.rating ?? 0;
   const totalRatings = ratingSummary.totalRatings ?? product.ratingCount ?? 0;
+  const availableStock = Number(product?.countInStock || 0);
+  const isOutOfStock = !product?.inStock || availableStock <= 0;
   const ratingDistribution =
     Array.isArray(ratingSummary.distribution) && ratingSummary.distribution.length === 5
       ? ratingSummary.distribution
       : DEFAULT_STAR_DISTRIBUTION;
+
+  const handleAddToCart = async () => {
+    await addToCart(product._id, user);
+  };
+
+  const handleBuyNow = async () => {
+    const added = await addToCart(product._id, user);
+    if (added) {
+      navigate("/cart");
+    }
+  };
+
+  const handleNotifyWhenAvailable = async () => {
+    if (!user) {
+      setshowUserLogin(true);
+      return;
+    }
+
+    try {
+      setSubscribingStockAlert(true);
+      const { data } = await apiClient.post(`/api/products/${product._id}/notify`);
+      if (data.success) {
+        toast.success(data.message || "You will be notified when available");
+      } else {
+        toast.error(data.message || "Failed to subscribe");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to subscribe");
+    } finally {
+      setSubscribingStockAlert(false);
+    }
+  };
+
   const handleLoadMoreReviews = () => {
     if (loadingRatings || loadingMoreReviews || !hasMoreReviews) {
       return;
@@ -228,6 +265,9 @@ const ProductDetails = () => {
               {product.offerPrice}
             </p>
             <span className="text-gray-400">(inclusive of all taxes)</span>
+            {isOutOfStock && (
+              <p className="mt-2 text-sm font-medium text-red-500">Out of Stock</p>
+            )}
           </div>
 
           {/* Description */}
@@ -242,19 +282,30 @@ const ProductDetails = () => {
           {/* Actions */}
           <div className="flex items-center gap-4 mt-10">
             <button
-              onClick={() => addToCart(product._id, user)}
-              className="w-full py-3 bg-gray-50 border border-primary hover:bg-gray-200 text-gray-800 font-medium rounded transition cursor-pointer"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className={`w-full py-3 border font-medium rounded transition ${
+                isOutOfStock
+                  ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-50 border-primary hover:bg-gray-200 text-gray-800 cursor-pointer"
+              }`}
             >
-              Add to Cart
+              {isOutOfStock ? "Out of Stock" : "Add to Cart"}
             </button>
             <button
-              onClick={() => {
-                addToCart(product._id, user);
-                navigate("/cart");
-              }}
-              className="w-full py-3 bg-primary hover:border hover:bg-primary-dull text-white font-medium rounded transition cursor-pointer"
+              onClick={isOutOfStock ? handleNotifyWhenAvailable : handleBuyNow}
+              disabled={subscribingStockAlert}
+              className={`w-full py-3 font-medium rounded transition ${
+                isOutOfStock
+                  ? "bg-gray-800 text-white hover:bg-gray-700"
+                  : "bg-primary hover:border hover:bg-primary-dull text-white"
+              } ${subscribingStockAlert ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}`}
             >
-              Buy Now
+              {isOutOfStock
+                ? subscribingStockAlert
+                  ? "Subscribing..."
+                  : "Notify When Available"
+                : "Buy Now"}
             </button>
           </div>
 

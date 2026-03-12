@@ -56,6 +56,14 @@ const orderSchema = new mongoose.Schema(
         "returned",
       ],
     },
+    inventoryApplied: {
+      type: Boolean,
+      default: false,
+    },
+    inventoryRestored: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

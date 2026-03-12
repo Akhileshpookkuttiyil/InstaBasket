@@ -36,3 +36,9 @@ export const updateProductSchema = z.object({
     inStock: z.boolean().optional(),
   }),
 });
+
+export const subscribeStockNotificationSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid product id"),
+  }),
+});

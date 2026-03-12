@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { assets } from "../../../assets/assets";
@@ -16,6 +16,7 @@ const CartPage = () => {
     setCartItems,
     removeFromCart,
     updateCartItem,
+    updateUserCart,
     getCartCount,
     getCartAmount,
   } = useCartStore();
@@ -29,6 +30,7 @@ const CartPage = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("COD");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [loading, setLoading] = useState(true);
+  const hasSyncedCartRef = useRef(false);
 
   useEffect(() => {
     if (products.length > 0 && cartItems) {
@@ -58,6 +60,27 @@ const CartPage = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      hasSyncedCartRef.current = false;
+      return;
+    }
+
+    if (hasSyncedCartRef.current) {
+      return;
+    }
+
+    const syncCartWithInventory = async () => {
+      const syncedCart = await updateUserCart(cartItems);
+      if (syncedCart) {
+        setCartItems(syncedCart);
+      }
+      hasSyncedCartRef.current = true;
+    };
+
+    syncCartWithInventory();
+  }, [cartItems, user, setCartItems, updateUserCart]);
+
   const fetchAddresses = async () => {
     try {
       const { data } = await apiClient.get("/api/address/get");
@@ -85,11 +108,15 @@ const CartPage = () => {
     }
 
     const invalidItem = cartArray.find(
-      (item) => item.quantity > (item.stock ?? item.countInStock ?? 0)
+      (item) =>
+        item.quantity >
+        (item.inStock ? Number(item.countInStock || 0) : 0)
     );
 
     if (invalidItem) {
-      const maxStock = invalidItem.stock ?? invalidItem.countInStock ?? 0;
+      const maxStock = invalidItem.inStock
+        ? Number(invalidItem.countInStock || 0)
+        : 0;
       return toast.error(
         `"${invalidItem.name}" exceeds available stock (${maxStock} max)`
       );
@@ -171,7 +198,13 @@ const CartPage = () => {
           <p className="text-center">Action</p>
         </div>
 
-        {cartArray.map((product) => (
+        {cartArray.map((product) => {
+          const availableQty = product.inStock
+            ? Number(product.countInStock || 0)
+            : 0;
+          const maxSelectableQty = Math.max(1, Math.min(5, availableQty));
+
+          return (
           <div
             key={product._id}
             className="grid grid-cols-[2fr_1fr_1fr] items-center py-4 border-t border-gray-200"
@@ -203,12 +236,13 @@ const CartPage = () => {
                   <select
                     className="border border-gray-200 outline-none rounded px-2 py-1"
                     value={cartItems[product._id]}
+                    disabled={availableQty <= 0}
                     onChange={(e) =>
                       updateCartItem(product._id, Number(e.target.value), user)
                     }
                   >
                     {Array.from(
-                      { length: Math.min(5, product.stock || 5) },
+                      { length: maxSelectableQty },
                       (_, i) => (
                         <option key={i} value={i + 1}>
                           {i + 1}
@@ -217,10 +251,13 @@ const CartPage = () => {
                     )}
                   </select>
                 </div>
-                {product.quantity > product.stock && (
+                {product.quantity > Number(product.countInStock || 0) && (
                   <p className="text-xs text-red-500 mt-1">
-                    Max available: {product.stock}
+                    Max available: {Number(product.countInStock || 0)}
                   </p>
+                )}
+                {(!product.inStock || Number(product.countInStock || 0) <= 0) && (
+                  <p className="text-xs text-red-500 mt-1">Out of Stock</p>
                 )}
               </div>
             </div>
@@ -237,7 +274,8 @@ const CartPage = () => {
               <img src={assets.remove_icon} alt="remove" className="w-6 h-6" />
             </button>
           </div>
-        ))}
+          );
+        })}
 
         <button
           onClick={() => {

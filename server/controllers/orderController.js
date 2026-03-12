@@ -1,10 +1,19 @@
+import mongoose from "mongoose";
+import stripe from "stripe";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
-import stripe from "stripe";
 import asyncHandler from "../utils/asyncHandler.js";
-import mongoose from "mongoose";
 import { createUserNotification } from "../utils/notification.js";
+import {
+  buildAvailabilitySnapshot,
+  decreaseStockForItems,
+  getRestockedProductIds,
+  increaseStockForItems,
+  isProductAvailable,
+  normalizeLineItems,
+} from "../utils/inventory.js";
+import { notifyAndClearStockSubscribers } from "../utils/stockNotification.js";
 
 const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 const TAX_RATE = 0.02;
@@ -27,50 +36,168 @@ const ORDER_STATUS_TRANSITIONS = {
 const getAllowedNextStatuses = (currentStatus) =>
   ORDER_STATUS_TRANSITIONS[currentStatus] || [];
 
-// Place order with Stripe : POST /api/order/placeorderstripe
+const createHttpError = (statusCode, message) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const mapOrderItemsForStorage = (lineItems) =>
+  lineItems.map((item) => ({
+    product: item.productId,
+    quantity: item.quantity,
+  }));
+
+const toLineItemsFromOrder = (orderItems = []) =>
+  orderItems.map((item) => ({
+    productId: String(item.product),
+    quantity: Number(item.quantity),
+  }));
+
+const getProductsByIds = async (productIds, session) => {
+  const query = Product.find({ _id: { $in: productIds } }).select(
+    "_id name offerPrice countInStock inStock"
+  );
+  if (session) {
+    query.session(session);
+  }
+  const products = await query;
+  return new Map(products.map((product) => [String(product._id), product]));
+};
+
+const validateAndCalculateSubtotal = (lineItems, productMap) => {
+  let subtotal = 0;
+
+  for (const item of lineItems) {
+    const product = productMap.get(item.productId);
+    if (!product) {
+      throw createHttpError(404, `Product ${item.productId} unavailable`);
+    }
+
+    if (!isProductAvailable(product) || item.quantity > Number(product.countInStock || 0)) {
+      throw createHttpError(
+        409,
+        `Only ${Math.max(0, Number(product.countInStock || 0))} left for ${product.name}`
+      );
+    }
+
+    subtotal += Number(product.offerPrice || 0) * item.quantity;
+  }
+
+  return subtotal;
+};
+
+const respondKnownError = (res, error) => {
+  if (!error?.statusCode) {
+    return false;
+  }
+
+  res.status(error.statusCode).json({
+    success: false,
+    message: error.message,
+  });
+  return true;
+};
+
+// Place order with Stripe : POST /api/order/stripe
 export const placeOrderStripe = asyncHandler(async (req, res) => {
-  const { items, shippingAddress, paymentMethod } = req.body;
+  const { items, shippingAddress } = req.body;
   const userId = req.user.id;
   const { origin } = req.headers;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ success: false, message: "Identification failed: User not found" });
+  const normalized = normalizeLineItems(items);
+  if (!normalized.valid) {
+    return res.status(400).json({
+      success: false,
+      message: normalized.message,
+    });
   }
 
-  const productData = [];
-  let subtotal = 0;
-
-  for (const item of items) {
-    const product = await Product.findById(item.productId);
-    if (!product) {
-      return res.status(404).json({ success: false, message: `Product ${item.productId} unavailable` });
-    }
-
-    if (item.quantity > product.stock) {
-      return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
-    }
-
-    productData.push({
-      productId: product._id,
-      name: product.name,
-      price: product.offerPrice,
-      quantity: item.quantity,
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "Identification failed: User not found",
     });
+  }
 
-    subtotal += product.offerPrice * item.quantity;
+  const lineItems = normalized.items;
+  const productIds = lineItems.map((item) => item.productId);
+  const productMap = await getProductsByIds(productIds);
+
+  let subtotal = 0;
+  try {
+    subtotal = validateAndCalculateSubtotal(lineItems, productMap);
+  } catch (error) {
+    if (respondKnownError(res, error)) {
+      return;
+    }
+    throw error;
   }
 
   const totalAmount = Math.round(subtotal * (1 + TAX_RATE));
 
   const order = await Order.create({
     userId,
-    items: productData.map((p) => ({ product: p.productId, quantity: p.quantity })),
+    items: mapOrderItemsForStorage(lineItems),
     shippingAddress,
-    paymentMethod,
+    paymentMethod: "Online",
     totalAmount,
     isPaid: false,
+    orderStatus: "order initiated",
+    inventoryApplied: false,
+    inventoryRestored: false,
   });
+
+  let stripeSession;
+  try {
+    const customer = await stripeInstance.customers.create({
+      name: user.name,
+      email: user.email,
+      address: {
+        line1: shippingAddress.street,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        postal_code: shippingAddress.zipcode || shippingAddress.postalCode,
+        country: "IN",
+      },
+    });
+
+    const stripeLineItems = lineItems.map((item) => {
+      const product = productMap.get(item.productId);
+      const price = Number(product?.offerPrice || 0);
+
+      return {
+        price_data: {
+          currency: "inr",
+          product_data: { name: product?.name || "Product" },
+          unit_amount: Math.round(price * (1 + TAX_RATE) * 100),
+        },
+        quantity: item.quantity,
+      };
+    });
+
+    stripeSession = await stripeInstance.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer: customer.id,
+      line_items: stripeLineItems,
+      success_url: `${origin}/loader?next=my-orders`,
+      cancel_url: `${origin}/cart`,
+      metadata: {
+        orderId: order._id.toString(),
+        userId: userId.toString(),
+      },
+    });
+  } catch (error) {
+    await Order.findOneAndDelete({
+      _id: order._id,
+      isPaid: false,
+      orderStatus: "order initiated",
+      inventoryApplied: false,
+    });
+    throw error;
+  }
 
   await createUserNotification({
     userId,
@@ -83,85 +210,87 @@ export const placeOrderStripe = asyncHandler(async (req, res) => {
     },
   });
 
-  const customer = await stripeInstance.customers.create({
-    name: user.name,
-    email: user.email,
-    address: {
-      line1: shippingAddress.street,
-      city: shippingAddress.city,
-      state: shippingAddress.state,
-      postal_code: shippingAddress.zipcode || shippingAddress.postalCode,
-      country: "IN",
-    },
-  });
-
-  const line_items = productData.map((item) => ({
-    price_data: {
-      currency: "inr",
-      product_data: { name: item.name },
-      unit_amount: Math.round(item.price * (1 + TAX_RATE) * 100),
-    },
-    quantity: item.quantity,
-  }));
-
-  const session = await stripeInstance.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-    customer: customer.id,
-    line_items,
-    success_url: `${origin}/loader?next=my-orders`,
-    cancel_url: `${origin}/cart`,
-    metadata: {
-      orderId: order._id.toString(),
-      userId: userId.toString(),
-    },
-  });
-
   res.status(201).json({
     success: true,
     message: "Secure checkout initialized",
-    url: session.url,
+    url: stripeSession.url,
   });
 });
 
-// Place order with COD : POST /api/order/placeordercod
+// Place order with COD : POST /api/order/cod
 export const placeOrderCOD = asyncHandler(async (req, res) => {
   const { items, shippingAddress } = req.body;
   const userId = req.user.id;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found" });
+  const normalized = normalizeLineItems(items);
+  if (!normalized.valid) {
+    return res.status(400).json({
+      success: false,
+      message: normalized.message,
+    });
   }
 
-  let subtotal = 0;
-  const formattedItems = [];
+  const lineItems = normalized.items;
+  const productIds = lineItems.map((item) => item.productId);
 
-  for (const item of items) {
-    const product = await Product.findById(item.productId);
-    if (!product) {
-      return res.status(404).json({ success: false, message: `Product ${item.productId} unavailable` });
+  const session = await mongoose.startSession();
+  let order;
+
+  try {
+    await session.withTransaction(async () => {
+      const user = await User.findById(userId).session(session);
+      if (!user) {
+        throw createHttpError(404, "User not found");
+      }
+
+      const productMap = await getProductsByIds(productIds, session);
+      const subtotal = validateAndCalculateSubtotal(lineItems, productMap);
+
+      const stockUpdateResult = await decreaseStockForItems(lineItems, session);
+      if (!stockUpdateResult.success) {
+        const failedProduct = productMap.get(stockUpdateResult.failedProductId);
+        throw createHttpError(
+          409,
+          `Only ${Math.max(
+            0,
+            Number(failedProduct?.countInStock || 0)
+          )} left for ${failedProduct?.name || "a product"}`
+        );
+      }
+
+      const totalAmount = Math.round(subtotal * (1 + TAX_RATE));
+      const [createdOrder] = await Order.create(
+        [
+          {
+            userId,
+            items: mapOrderItemsForStorage(lineItems),
+            shippingAddress,
+            totalAmount,
+            paymentMethod: "COD",
+            isPaid: false,
+            orderStatus: "order placed",
+            inventoryApplied: true,
+            inventoryRestored: false,
+          },
+        ],
+        { session }
+      );
+
+      order = createdOrder;
+      await User.findByIdAndUpdate(
+        userId,
+        { $set: { cartItems: {} } },
+        { session }
+      );
+    });
+  } catch (error) {
+    if (respondKnownError(res, error)) {
+      return;
     }
-
-    if (item.quantity > product.stock) {
-      return res.status(400).json({ success: false, message: `Stock limit reached for ${product.name}` });
-    }
-
-    subtotal += product.offerPrice * item.quantity;
-    formattedItems.push({ product: product._id, quantity: item.quantity });
+    throw error;
+  } finally {
+    await session.endSession();
   }
-
-  const totalAmount = Math.round(subtotal * (1 + TAX_RATE));
-
-  const order = await Order.create({
-    userId,
-    items: formattedItems,
-    shippingAddress,
-    totalAmount,
-    paymentMethod: "COD",
-    isPaid: false,
-    orderStatus: "order placed",
-  });
 
   await createUserNotification({
     userId,
@@ -181,7 +310,7 @@ export const placeOrderCOD = asyncHandler(async (req, res) => {
   });
 });
 
-// Get User Orders : GET /api/order/getuserorders
+// Get User Orders : GET /api/order/user
 export const getUserOrders = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
@@ -220,7 +349,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
   });
 });
 
-// Get All Orders (Admin) : GET /api/order/getallorders
+// Get All Orders (Seller) : GET /api/order/seller
 export const getAllOrders = asyncHandler(async (req, res) => {
   const { dateFrom, dateTo, status, paymentMethod, q } = req.query;
 
@@ -295,42 +424,69 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  const order = await Order.findById(id);
-  if (!order) {
-    return res.status(404).json({
-      success: false,
-      message: "Order not found",
-    });
-  }
+  const session = await mongoose.startSession();
+  let updatedOrder = null;
+  let previousStatus = "";
+  let restockedProductIds = [];
 
-  const previousStatus = order.orderStatus;
-  if (previousStatus === nextStatus) {
-    return res.status(200).json({
-      success: true,
-      message: "Order status already up to date",
-      order,
-      allowedNextStatuses: getAllowedNextStatuses(previousStatus),
-    });
-  }
+  try {
+    await session.withTransaction(async () => {
+      const order = await Order.findById(id).session(session);
+      if (!order) {
+        throw createHttpError(404, "Order not found");
+      }
 
-  if (order.paymentMethod === "Online" && !order.isPaid) {
-    return res.status(409).json({
-      success: false,
-      message: "Unpaid online orders cannot be status-updated",
-    });
-  }
+      previousStatus = order.orderStatus;
+      if (previousStatus === nextStatus) {
+        updatedOrder = order.toObject();
+        return;
+      }
 
-  const allowedNextStatuses = getAllowedNextStatuses(previousStatus);
-  if (!allowedNextStatuses.includes(nextStatus)) {
-    return res.status(409).json({
-      success: false,
-      message: `Status cannot move from "${previousStatus}" to "${nextStatus}"`,
-      allowedNextStatuses,
-    });
-  }
+      if (order.paymentMethod === "Online" && !order.isPaid && nextStatus !== "cancelled") {
+        throw createHttpError(409, "Unpaid online orders cannot be status-updated");
+      }
 
-  order.orderStatus = nextStatus;
-  await order.save();
+      const allowedNextStatuses = getAllowedNextStatuses(previousStatus);
+      if (!allowedNextStatuses.includes(nextStatus)) {
+        throw createHttpError(
+          409,
+          `Status cannot move from "${previousStatus}" to "${nextStatus}"`
+        );
+      }
+
+      const shouldRestoreInventory =
+        ["cancelled", "returned"].includes(nextStatus) &&
+        order.inventoryApplied &&
+        !order.inventoryRestored;
+
+      if (shouldRestoreInventory) {
+        const lineItems = toLineItemsFromOrder(order.items);
+        const productIds = lineItems.map((item) => item.productId);
+
+        const productsBeforeRestore = await Product.find({
+          _id: { $in: productIds },
+        })
+          .select("_id countInStock inStock")
+          .session(session);
+        const beforeSnapshot = buildAvailabilitySnapshot(productsBeforeRestore);
+
+        const productsAfterRestore = await increaseStockForItems(lineItems, session);
+        restockedProductIds = getRestockedProductIds(beforeSnapshot, productsAfterRestore);
+        order.inventoryRestored = true;
+      }
+
+      order.orderStatus = nextStatus;
+      await order.save({ session });
+      updatedOrder = order.toObject();
+    });
+  } catch (error) {
+    if (respondKnownError(res, error)) {
+      return;
+    }
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 
   if (previousStatus !== nextStatus) {
     const statusMessages = {
@@ -342,23 +498,41 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     };
 
     await createUserNotification({
-      userId: order.userId,
+      userId: updatedOrder.userId,
       title: "Order status updated",
       message:
         statusMessages[nextStatus] ||
         `Your order status is now "${nextStatus}".`,
       type: "order",
       meta: {
-        orderId: order._id,
+        orderId: updatedOrder._id,
         status: nextStatus,
       },
     });
   }
 
+  if (restockedProductIds.length > 0) {
+    const restockedProducts = await Product.find({
+      _id: { $in: restockedProductIds },
+    }).select("_id name");
+
+    await Promise.all(
+      restockedProducts.map((product) =>
+        notifyAndClearStockSubscribers({
+          productId: product._id,
+          productName: product.name,
+        })
+      )
+    );
+  }
+
   res.status(200).json({
     success: true,
-    message: "Order status updated",
-    order,
+    message:
+      previousStatus === nextStatus
+        ? "Order status already up to date"
+        : "Order status updated",
+    order: updatedOrder,
     allowedNextStatuses: getAllowedNextStatuses(nextStatus),
   });
 });

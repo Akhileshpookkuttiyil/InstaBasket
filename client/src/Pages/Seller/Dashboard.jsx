@@ -72,6 +72,8 @@ const Dashboard = () => {
   const revenueTrend = useMemo(() => {
     return summary?.monthlyRevenue || [];
   }, [summary]);
+  const lowStockAlerts = summary?.lowStockAlerts || [];
+  const outOfStockAlerts = summary?.outOfStockAlerts || [];
 
   if (loading) {
     return (
@@ -191,6 +193,15 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
               <div className="flex items-center gap-2">
+                <AlertTriangle size={16} className="text-rose-500" />
+                <span className="text-gray-600">Out of Stock</span>
+              </div>
+              <span className="font-semibold text-rose-600">
+                {summary.outOfStockProducts || 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+              <div className="flex items-center gap-2">
                 <ShoppingCart size={16} className="text-emerald-500" />
                 <span className="text-gray-600">Delivered Orders</span>
               </div>
@@ -201,6 +212,49 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {(lowStockAlerts.length > 0 || outOfStockAlerts.length > 0) && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={20} className="text-amber-500" />
+            <h3 className="text-base font-semibold text-gray-800">Stock Alerts</h3>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-3">
+              <p className="text-sm font-semibold text-amber-700">
+                Low Stock ({lowStockAlerts.length})
+              </p>
+              {lowStockAlerts.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">No low stock products.</p>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  {lowStockAlerts.map((product) => (
+                    <p key={product._id} className="text-sm text-gray-700">
+                      {product.name} ({product.countInStock} left)
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border border-rose-100 bg-rose-50/40 p-3">
+              <p className="text-sm font-semibold text-rose-700">
+                Out of Stock ({outOfStockAlerts.length})
+              </p>
+              {outOfStockAlerts.length === 0 ? (
+                <p className="mt-2 text-sm text-gray-500">No out-of-stock products.</p>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  {outOfStockAlerts.map((product) => (
+                    <p key={product._id} className="text-sm text-gray-700">
+                      {product.name}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
