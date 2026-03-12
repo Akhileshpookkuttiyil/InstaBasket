@@ -43,7 +43,7 @@ const ProductCard = ({ product }) => {
         )}
         {isOutOfStock && (
           <span className="absolute right-3 top-3 z-10 rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-medium text-white">
-            Out of stock
+            Out of Stock
           </span>
         )}
         <img
@@ -114,7 +114,7 @@ const ProductCard = ({ product }) => {
                 className="rounded-md border border-gray-300 bg-gray-100 px-3.5 py-2 text-sm font-medium text-gray-500 cursor-not-allowed"
                 disabled
               >
-                Unavailable
+                Out of Stock
               </button>
             )) : (
               <div className="flex h-[34px] items-center overflow-hidden rounded-md border border-primary/35 bg-primary/10 select-none">

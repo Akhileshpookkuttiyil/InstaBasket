@@ -48,6 +48,15 @@ const App = () => {
     init();
   }, [fetchProducts, fetchSellerStatus, fetchUser, setCartItems]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (document.hidden) return;
+      fetchProducts({}, { silent: true });
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchProducts]);
+
   return (
     <div className="text-default min-h-screen text-gray-700 bg-white">
       {!isSellerPath && <Navbar />}

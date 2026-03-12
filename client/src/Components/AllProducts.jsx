@@ -11,7 +11,7 @@ const AllProducts = () => {
       const matchesSearch = searchQuery
         ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
-      return matchesSearch && product.inStock;
+      return matchesSearch;
     });
   }, [products, searchQuery]);
 

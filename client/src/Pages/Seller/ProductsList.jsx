@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { categories } from "../../assets/assets";
 import apiClient from "../../shared/lib/apiClient";
+import useProductStore from "../../store/useProductStore";
 import {
   Search,
   Filter,
@@ -32,6 +33,7 @@ const getEditableForm = (product) => ({
 });
 
 const ProductsList = () => {
+  const { fetchProducts } = useProductStore();
   const [products, setProducts] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -74,6 +76,7 @@ const ProductsList = () => {
         setProducts((prev) =>
           prev.map((p) => (p._id === id ? { ...p, inStock } : p))
         );
+        fetchProducts({}, { silent: true });
         toast.success(data.message);
       } else {
         toast.error(data.message);
@@ -153,6 +156,7 @@ const ProductsList = () => {
           category: selectedCategory,
           inStock: stockStatus === "all" ? undefined : stockStatus === "instock",
         });
+        fetchProducts({}, { silent: true });
         onEditClose();
       } else {
         toast.error(data.message || "Failed to update product");

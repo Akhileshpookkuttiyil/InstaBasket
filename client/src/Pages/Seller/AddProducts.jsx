@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { assets, categories } from "../../assets/assets";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
+import useProductStore from "../../store/useProductStore";
 import {
   PackagePlus,
   Image as ImageIcon,
@@ -24,6 +25,7 @@ const initialFormData = {
 };
 
 const AddProducts = () => {
+  const { fetchProducts } = useProductStore();
   const [formData, setFormData] = useState(initialFormData);
   const [files, setFiles] = useState([]);
 
@@ -85,6 +87,7 @@ const AddProducts = () => {
         toast.success(data.message || "Product added successfully");
         setFormData(initialFormData);
         setFiles([]);
+        fetchProducts({}, { silent: true });
       } else {
         toast.error(data.message || "Something went wrong");
       }
