@@ -152,10 +152,10 @@ const Users = () => {
                 {users.map((user) => (
                   <tr key={user._id} className="border-b border-gray-100">
                     <td className="px-4 py-3">
-  <div className="w-9 h-9 rounded-full overflow-hidden">
-    <Avatar user={user} size="w-9 h-9" />
-  </div>
-</td>
+                      <div className="w-9 h-9 rounded-full overflow-hidden">
+                        <Avatar user={user} size="w-9 h-9" />
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-800">{user.name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
@@ -170,11 +170,10 @@ const Users = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          user.isActive
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${user.isActive
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-red-100 text-red-700"
-                        }`}
+                          }`}
                       >
                         {user.isActive ? "Active" : "Inactive"}
                       </span>
@@ -183,15 +182,14 @@ const Users = () => {
                       <button
                         onClick={() => toggleUserStatus(user)}
                         disabled={updatingUserId === user._id}
-                        className={`rounded-md px-3 py-1.5 text-xs font-medium text-white ${
-                          user.isActive ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
-                        } ${updatingUserId === user._id ? "cursor-not-allowed opacity-60" : ""}`}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium text-white ${user.isActive ? "bg-red-500 hover:bg-red-600" : "bg-emerald-600 hover:bg-emerald-700"
+                          } ${updatingUserId === user._id ? "cursor-not-allowed opacity-60" : ""}`}
                       >
                         {updatingUserId === user._id
                           ? "Updating..."
                           : user.isActive
-                          ? "Deactivate"
-                          : "Activate"}
+                            ? "Deactivate"
+                            : "Activate"}
                       </button>
                     </td>
                   </tr>

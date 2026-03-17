@@ -16,7 +16,7 @@ import {
 
 const SellerLayout = () => {
   const navigate = useNavigate();
-  const { fetchSellerStatus } = useAuthStore();
+  const { setIsSeller } = useAuthStore();
 
   const sidebarLinks = [
     { name: "Dashboard", path: "/seller", icon: LayoutDashboard },
@@ -26,13 +26,14 @@ const SellerLayout = () => {
     { name: "Users", path: "/seller/users", icon: Users },
   ];
 
+
   const handleLogout = async () => {
     try {
       const { data } = await apiClient.get("/api/seller/logout");
       if (data.success) {
         toast.success(data.message);
-        fetchSellerStatus(); // update auth store
-        navigate("/seller");
+        setIsSeller(false); // Update state immediately
+        navigate("/seller", { replace: true });
       } else {
         toast.error(data.message);
       }

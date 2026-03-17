@@ -10,6 +10,7 @@ const useAuthStore = create((set) => ({
 
   setShowUserLogin: (show) => set({ showUserLogin: show }),
   setshowUserLogin: (show) => set({ showUserLogin: show }),
+  setIsSeller: (status) => set({ isSeller: status }),
 
   fetchUser: async () => {
     try {
