@@ -165,7 +165,7 @@ export const getSellerUsers = asyncHandler(async (req, res) => {
   }
 
   const users = await User.find(query)
-    .select("name email isActive createdAt")
+    .select("name email isActive createdAt profileImage googleImage provider")
     .sort({ createdAt: -1 })
     .lean();
 

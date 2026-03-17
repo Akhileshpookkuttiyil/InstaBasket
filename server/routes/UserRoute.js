@@ -12,9 +12,12 @@ import {
   updateProfile,
   updateSettings,
   verifyUser,
+  uploadProfileImage,
+  removeProfileImage,
 } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
 import validate from "../middlewares/validate.js";
+import { upload } from "../configs/multer.js";
 import { registerSchema, loginSchema, otpSchema, emailSchema } from "../schemas/authSchema.js";
 import { updateProfileSchema, updateSettingsSchema } from "../schemas/userSchema.js";
 import rateLimit from "express-rate-limit";
@@ -46,6 +49,14 @@ userRouter.get("/profile", authUser, getProfile);
 userRouter.patch("/profile", authUser, validate(updateProfileSchema), updateProfile);
 userRouter.get("/settings", authUser, getSettings);
 userRouter.patch("/settings", authUser, validate(updateSettingsSchema), updateSettings);
+
+userRouter.post(
+  "/profile/image",
+  authUser,
+  upload.single("profileImage"),
+  uploadProfileImage
+);
+userRouter.delete("/profile/image", authUser, removeProfileImage);
 
 userRouter.get("/test", (req, res) => {
   res.send("User router is working!");

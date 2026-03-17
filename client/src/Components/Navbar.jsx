@@ -15,6 +15,7 @@ import {
   Circle,
 } from "lucide-react";
 import apiClient from "../shared/lib/apiClient";
+import Avatar from "./Avatar";
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -364,11 +365,7 @@ const Navbar = () => {
                 aria-expanded={userMenuOpen}
                 aria-controls="user-dropdown-menu"
               >
-                <img
-                  src={assets.profile_icon}
-                  alt="User Icon"
-                  className="w-8 h-8 rounded-full cursor-pointer"
-                />
+                <Avatar user={user} size="w-8 h-8" />
               </button>
               <ul
                 id="user-dropdown-menu"

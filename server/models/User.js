@@ -23,6 +23,19 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null, // only set when registered via Google
     },
+    profileImage: {
+      type: String,
+      default: "", // custom uploaded image (highest priority)
+    },
+    googleImage: {
+      type: String,
+      default: "", // photo pulled from Google OAuth
+    },
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
     phone: {
       type: String,
       default: "",

@@ -7,6 +7,7 @@ import sendEmail from "../utils/sendEmail.js";
 import axios from "axios";
 import asyncHandler from "../utils/asyncHandler.js";
 import { cookieOptions } from "../config/env.js";
+import { v2 as cloudinary } from "cloudinary";
 
 // Token generator utility
 const generateToken = (user) => {
@@ -57,8 +58,56 @@ export const initiateUser = asyncHandler(async (req, res) => {
 
   res.status(200).json({ success: true, message: "Verification code sent!" });
 });
+// Upload profile image: POST /api/user/profile/image
+export const uploadProfileImage = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "No image uploaded" });
+  }
 
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    resource_type: "image",
+    folder: "instabasket/profiles",
+    transformation: [
+      { width: 400, height: 400, crop: "fill", gravity: "face" },
+    ],
+  });
 
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { profileImage: result.secure_url },
+    { new: true, select: "name email profileImage googleImage provider" }
+  ).lean();
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: "Account not found" });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Profile image updated",
+    profileImage: user.profileImage,
+    user,
+  });
+});
+
+// Remove profile image: DELETE /api/user/profile/image
+export const removeProfileImage = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { profileImage: "" },
+    { new: true, select: "name email profileImage googleImage provider" }
+  ).lean();
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: "Account not found" });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Profile image removed",
+    user,
+  });
+});
 // Verify User OTP : POST /api/user/register/verify
 export const verifyUser = asyncHandler(async (req, res) => {
   let { email, otp } = req.body;
@@ -97,6 +146,9 @@ export const verifyUser = asyncHandler(async (req, res) => {
       id: newUser._id,
       name: newUser.name,
       email: newUser.email,
+      profileImage: newUser.profileImage || "",
+      googleImage: newUser.googleImage || "",
+      provider: newUser.provider || "local",
       isAdmin: newUser.isAdmin || false,
     },
   });
@@ -151,13 +203,21 @@ export const googleLogin = asyncHandler(async (req, res) => {
       name,
       email,
       googleId,
-      profileImage: picture,
+      googleImage: picture,
       provider: "google",
     });
   } else if (!user.googleId) {
+    // Existing local user linking their Google account
     user.googleId = googleId;
-    user.profileImage = user.profileImage || picture;
+    user.provider = "google";
+    if (!user.googleImage) user.googleImage = picture;
     await user.save();
+  } else {
+    // Returning Google user — refresh Google photo if it changed
+    if (picture && user.googleImage !== picture) {
+      user.googleImage = picture;
+      await user.save();
+    }
   }
 
   if (user.isActive === false) {
@@ -178,6 +238,8 @@ export const googleLogin = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       profileImage: user.profileImage,
+      googleImage: user.googleImage,
+      provider: user.provider,
       isAdmin: user.isAdmin || false,
     },
   });
@@ -215,6 +277,9 @@ export const loginUser = asyncHandler(async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      profileImage: user.profileImage,
+      googleImage: user.googleImage,
+      provider: user.provider,
       isAdmin: user.isAdmin || false,
     },
   });
@@ -229,7 +294,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 // Get profile: GET /api/user/profile
 export const getProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select(
-    "name email phone settings createdAt updatedAt"
+    "name email phone profileImage googleImage provider settings createdAt updatedAt"
   );
 
   if (!user) {
@@ -273,6 +338,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       phone: user.phone || "",
+      profileImage: user.profileImage,
+      googleImage: user.googleImage,
+      provider: user.provider,
       settings: user.settings || {},
       updatedAt: user.updatedAt,
     },

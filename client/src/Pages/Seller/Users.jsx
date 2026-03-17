@@ -10,6 +10,7 @@ import {
   DollarSign,
   ShoppingBag
 } from "lucide-react";
+import Avatar from "../../Components/Avatar";
 
 const Users = () => {
   const currency = import.meta.env.VITE_CURRENCY || "$";
@@ -138,6 +139,7 @@ const Users = () => {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gray-100 bg-gray-50 text-gray-600">
                 <tr>
+                  <th className="px-4 py-3 font-semibold w-12 text-center"></th>
                   <th className="px-4 py-3 font-semibold">User</th>
                   <th className="px-4 py-3 font-semibold">Orders</th>
                   <th className="px-4 py-3 font-semibold">Revenue</th>
@@ -149,6 +151,11 @@ const Users = () => {
               <tbody>
                 {users.map((user) => (
                   <tr key={user._id} className="border-b border-gray-100">
+                    <td className="px-4 py-3">
+  <div className="w-9 h-9 rounded-full overflow-hidden">
+    <Avatar user={user} size="w-9 h-9" />
+  </div>
+</td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-800">{user.name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
