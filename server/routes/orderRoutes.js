@@ -1,14 +1,15 @@
 import express from "express";
 import authUser from "../middlewares/authUser.js";
+import authSeller from "../middlewares/authSeller.js";
+import validate from "../middlewares/validate.js";
 import {
   getAllOrders,
   getUserOrders,
   placeOrderCOD,
   placeOrderStripe,
   updateOrderStatus,
+  payExistingOrderStripe,
 } from "../controllers/orderController.js";
-import authSeller from "../middlewares/authSeller.js";
-import validate from "../middlewares/validate.js";
 import {
   sellerOrderFiltersSchema,
   updateOrderStatusSchema,
@@ -16,8 +17,13 @@ import {
 
 const orderRouter = express.Router();
 
+// User Endpoints
 orderRouter.post("/cod", authUser, placeOrderCOD);
+orderRouter.post("/stripe", authUser, placeOrderStripe);
 orderRouter.get("/user", authUser, getUserOrders);
+orderRouter.post("/:id/pay", authUser, payExistingOrderStripe);
+
+// Seller Endpoints
 orderRouter.get("/seller", authSeller, validate(sellerOrderFiltersSchema), getAllOrders);
 orderRouter.patch(
   "/seller/:id/status",
@@ -25,6 +31,5 @@ orderRouter.patch(
   validate(updateOrderStatusSchema),
   updateOrderStatus
 );
-orderRouter.post("/stripe", authUser, placeOrderStripe);
 
 export default orderRouter;

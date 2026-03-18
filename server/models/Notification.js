@@ -10,8 +10,8 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["order", "account", "system"],
-      default: "order",
+      enum: ["ORDER_UPDATE", "PAYMENT_UPDATE", "REFUND_UPDATE", "ACCOUNT", "SYSTEM"],
+      default: "ORDER_UPDATE",
     },
     title: {
       type: String,
@@ -30,10 +30,8 @@ const notificationSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
       },
-      status: {
-        type: String,
-        default: "",
-      },
+      status: String,
+      amount: Number,
     },
     isRead: {
       type: Boolean,

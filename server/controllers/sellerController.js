@@ -47,13 +47,14 @@ export const sellerLogout = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Redesigned Seller Summary to match new Logistical/Financial state machine
+ */
 export const getSellerSummary = asyncHandler(async (req, res) => {
-  const orderMatch = {
-    $and: [
-      { $or: [{ paymentMethod: "COD" }, { isPaid: true }] },
-      { orderStatus: { $ne: "cancelled" } },
-    ],
-  };
+  // Logic: Only count revenue for DELIVERED orders minus REFUNDED amounts
+  const revenueMatch = { orderStatus: "DELIVERED" };
+  const generalOrderMatch = { orderStatus: { $ne: "CANCELLED" } };
+
   const lowStockCriteria = { countInStock: { $gt: 0, $lte: 5 } };
   const outOfStockCriteria = {
     $or: [{ countInStock: { $lte: 0 } }, { inStock: false }],
@@ -95,34 +96,41 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(8)
       .lean(),
-    Order.countDocuments(orderMatch),
-    Order.countDocuments({ ...orderMatch, orderStatus: { $in: ["order placed", "shipped"] } }),
-    Order.countDocuments({ ...orderMatch, orderStatus: "delivered" }),
+    Order.countDocuments(generalOrderMatch),
+    // Pending includes CONFIRMED and SHIPPED (Logistics active)
+    Order.countDocuments({ orderStatus: { $in: ["CONFIRMED", "SHIPPED"] } }),
+    Order.countDocuments({ orderStatus: "DELIVERED" }),
+    
+    // Revenue Calculation (Reflecting the new DELIVERED rule)
     Order.aggregate([
-      { $match: orderMatch },
-      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+      { $match: revenueMatch },
+      { $group: { _id: null, grossRevenue: { $sum: "$totalAmount" }, totalRefunds: { $sum: "$refundedAmount" } } },
     ]),
+    
     Order.aggregate([
-      { $match: orderMatch },
+      { $match: revenueMatch },
       {
         $group: {
           _id: {
             year: { $year: "$createdAt" },
             month: { $month: "$createdAt" },
           },
-          revenue: { $sum: "$totalAmount" },
+          revenue: { $sum: { $subtract: ["$totalAmount", "$refundedAmount"] } },
           orders: { $sum: 1 },
         },
       },
       { $sort: { "_id.year": -1, "_id.month": -1 } },
       { $limit: 6 },
     ]),
-    Order.find(orderMatch)
+    
+    Order.find()
       .populate("userId", "name email")
       .sort({ createdAt: -1 })
       .limit(5)
       .lean(),
   ]);
+
+  const stats = revenueAgg[0] || { grossRevenue: 0, totalRefunds: 0 };
 
   res.status(200).json({
     success: true,
@@ -139,7 +147,7 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
       totalOrders,
       pendingOrders,
       deliveredOrders,
-      totalRevenue: revenueAgg[0]?.totalRevenue || 0,
+      totalRevenue: stats.grossRevenue - stats.totalRefunds,
       monthlyRevenue: monthlyRevenueAgg
         .map((item) => ({
           month: `${item._id.year}-${String(item._id.month).padStart(2, "0")}`,
@@ -174,14 +182,14 @@ export const getSellerUsers = asyncHandler(async (req, res) => {
     {
       $match: {
         userId: { $in: userIds },
-        $or: [{ paymentMethod: "COD" }, { isPaid: true }],
+        orderStatus: { $ne: "CANCELLED" }
       },
     },
     {
       $group: {
         _id: "$userId",
         ordersCount: { $sum: 1 },
-        totalSpent: { $sum: "$totalAmount" },
+        totalSpent: { $sum: { $subtract: ["$totalAmount", "$refundedAmount"] } },
       },
     },
   ]);

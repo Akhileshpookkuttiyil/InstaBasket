@@ -19,6 +19,15 @@ const orderSchema = new mongoose.Schema(
           required: true,
           min: [1, "Quantity must be at least 1"],
         },
+        priceAtPurchase: {
+          type: Number,
+          required: true,
+        },
+        returnStatus: {
+          type: String,
+          enum: ["NONE", "REQUESTED", "RETURNED", "REJECTED"],
+          default: "NONE",
+        },
       },
     ],
 
@@ -33,9 +42,26 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
-    isPaid: {
-      type: Boolean,
-      default: false,
+    // Logistical Status (The Physical Flow)
+    orderStatus: {
+      type: String,
+      default: "PENDING",
+      enum: [
+        "PENDING",
+        "CONFIRMED",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+        "RETURN_REQUESTED",
+        "RETURNED",
+      ],
+    },
+
+    // Financial Status (The Money Flow)
+    paymentStatus: {
+      type: String,
+      default: "PENDING",
+      enum: ["PENDING", "PAID", "UNPAID", "REFUND_PENDING", "REFUNDED", "REFUND_FAILED"],
     },
 
     paymentMethod: {
@@ -44,32 +70,44 @@ const orderSchema = new mongoose.Schema(
       enum: ["COD", "Online"],
     },
 
-    orderStatus: {
-      type: String,
-      default: "order initiated",
-      enum: [
-        "order initiated",
-        "order placed",
-        "shipped",
-        "delivered",
-        "cancelled",
-        "returned",
-      ],
+    // Tracking for Refunds
+    refundedAmount: {
+      type: Number,
+      default: 0,
     },
+    
+    // Audit log for admin overrides
+    adminActions: [
+      {
+        action: String,
+        adminEmail: String,
+        timestamp: { type: Date, default: Date.now },
+        reason: String,
+      }
+    ],
+
+    transactions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Transaction",
+      },
+    ],
+
     inventoryApplied: {
       type: Boolean,
       default: false,
     },
-    inventoryRestored: {
-      type: Boolean,
-      default: false,
-    },
+    
+    paymentId: String, // Reference to Stripe/Razorpay session or intent
   },
   {
     timestamps: true,
     versionKey: false,
   }
 );
+
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index({ userId: 1, createdAt: -1 });
 
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 export default Order;

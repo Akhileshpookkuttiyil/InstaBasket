@@ -66,6 +66,9 @@ export const getRestockedProductIds = (beforeSnapshot, afterProducts = []) =>
     })
     .map((product) => String(product._id));
 
+/**
+ * Decreases stock for a list of items within a session.
+ */
 export const decreaseStockForItems = async (lineItems, session) => {
   const updatedProducts = [];
 
@@ -84,7 +87,7 @@ export const decreaseStockForItems = async (lineItems, session) => {
         },
         {
           $set: {
-            inStock: { $gt: ["$countInStock", 0] },
+            inStock: { $gt: [{ $subtract: ["$countInStock", item.quantity] }, 0] },
           },
         },
       ],
@@ -111,6 +114,9 @@ export const decreaseStockForItems = async (lineItems, session) => {
   };
 };
 
+/**
+ * Increases stock for a list of items (e.g. on return or cancellation).
+ */
 export const increaseStockForItems = async (lineItems, session) => {
   const updatedProducts = [];
 
@@ -125,7 +131,7 @@ export const increaseStockForItems = async (lineItems, session) => {
         },
         {
           $set: {
-            inStock: { $gt: ["$countInStock", 0] },
+            inStock: { $gt: [{ $add: ["$countInStock", item.quantity] }, 0] },
           },
         },
       ],
