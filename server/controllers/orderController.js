@@ -615,7 +615,7 @@ export const getUserOrders = asyncHandler(async (req, res) => {
 });
 
 export const getAllOrders = asyncHandler(async (req, res) => {
-  const { status, paymentMethod, q } = req.query;
+  const { status, paymentMethod, q, dateFrom, dateTo } = req.query;
   const query = {};
   if (status) {
     const normalizedStatus = String(status).toLowerCase();
@@ -640,6 +640,27 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     } else {
       query.paymentMethod = normalizedMethod;
     }
+  }
+  if (dateFrom || dateTo) {
+    const createdAt = {};
+    if (dateFrom) {
+      const fromDate = new Date(`${dateFrom}T00:00:00.000Z`);
+      if (Number.isNaN(fromDate.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid start date" });
+      }
+      createdAt.$gte = fromDate;
+    }
+    if (dateTo) {
+      const toDate = new Date(`${dateTo}T23:59:59.999Z`);
+      if (Number.isNaN(toDate.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid end date" });
+      }
+      createdAt.$lte = toDate;
+    }
+    if (createdAt.$gte && createdAt.$lte && createdAt.$gte > createdAt.$lte) {
+      return res.status(400).json({ success: false, message: "End date must be after start date" });
+    }
+    query.createdAt = createdAt;
   }
 
   let orders = await Order.find(query)

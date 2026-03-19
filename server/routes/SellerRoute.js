@@ -32,6 +32,7 @@ import {
   updateProductSchema,
   changeStockSchema,
 } from "../schemas/productSchema.js";
+import { sellerOrderFiltersSchema } from "../schemas/orderSchema.js";
 
 const sellerRouter = express.Router();
 
@@ -52,7 +53,7 @@ sellerRouter.get("/users", authSeller, getSellerUsers);
 sellerRouter.patch("/users/:id/status", authSeller, updateUserStatus);
 
 // Order & Financial Management
-sellerRouter.get("/orders", authSeller, getAllOrders);
+sellerRouter.get("/orders", authSeller, validate(sellerOrderFiltersSchema), getAllOrders);
 sellerRouter.patch("/orders/:id/status", authSeller, updateOrderStatus);
 sellerRouter.patch("/orders/:id/payment", authSeller, updatePaymentStatusManual);
 sellerRouter.post("/orders/:id/refund", authSeller, initiateManualRefund);

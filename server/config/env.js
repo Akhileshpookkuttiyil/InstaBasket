@@ -8,6 +8,7 @@ const requiredVars = [
   "SELLER_PASSWORD",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
+  "ADMIN_RESET_KEY",
 ];
 
 for (const key of requiredVars) {

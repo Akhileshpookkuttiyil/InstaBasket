@@ -8,11 +8,23 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { createUserNotification } from "../utils/notification.js";
 import { processRefund } from "../services/refundService.js";
 
+const isValidResetSecret = (providedSecret) => {
+  const configured = String(process.env.ADMIN_RESET_KEY || "").trim();
+  if (!configured) {
+    return { ok: false, message: "ADMIN_RESET_KEY is not configured on server." };
+  }
+  if (String(providedSecret || "").trim() !== configured) {
+    return { ok: false, message: "Unauthorized reset attempt." };
+  }
+  return { ok: true };
+};
+
 export const resetSystemData = asyncHandler(async (req, res) => {
   const { clearUsers = false, secretKey } = req.body;
 
-  if (secretKey !== process.env.ADMIN_RESET_KEY) {
-    return res.status(403).json({ success: false, message: "Unauthorized reset attempt." });
+  const resetAuth = isValidResetSecret(secretKey);
+  if (!resetAuth.ok) {
+    return res.status(403).json({ success: false, message: resetAuth.message });
   }
 
   const session = await mongoose.startSession();
@@ -37,8 +49,9 @@ export const resetSystemData = asyncHandler(async (req, res) => {
 export const clearOrdersAndNotificationsSafe = asyncHandler(async (req, res) => {
   const { secretKey, dryRun = true } = req.body || {};
 
-  if (secretKey !== process.env.ADMIN_RESET_KEY) {
-    return res.status(403).json({ success: false, message: "Unauthorized clear attempt." });
+  const resetAuth = isValidResetSecret(secretKey);
+  if (!resetAuth.ok) {
+    return res.status(403).json({ success: false, message: resetAuth.message });
   }
 
   const [ordersCount, transactionsCount, notificationsCount] = await Promise.all([

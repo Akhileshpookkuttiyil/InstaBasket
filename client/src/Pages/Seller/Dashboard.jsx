@@ -50,6 +50,7 @@ const Dashboard = () => {
   const currency = import.meta.env.VITE_CURRENCY || "$";
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isClearingSystemData, setIsClearingSystemData] = useState(false);
 
   const fetchSummary = async () => {
     setLoading(true);
@@ -70,6 +71,59 @@ const Dashboard = () => {
   useEffect(() => {
     fetchSummary();
   }, []);
+
+  const handleClearSystemData = async () => {
+    const secret = prompt("Enter ADMIN_RESET_KEY to proceed:");
+    if (!secret) return;
+
+    setIsClearingSystemData(true);
+    try {
+      const previewResponse = await apiClient.post("/api/seller/system/clear-orders-notifications", {
+        secretKey: secret,
+        dryRun: true,
+      });
+
+      if (!previewResponse.data?.success) {
+        toast.error(previewResponse.data?.message || "Failed to preview system cleanup.");
+        return;
+      }
+
+      const summaryPreview = previewResponse.data.summary || {
+        orders: 0,
+        transactions: 0,
+        notifications: 0,
+      };
+
+      const confirmed = window.confirm(
+        [
+          "This action will permanently delete:",
+          `- Orders: ${summaryPreview.orders}`,
+          `- Transactions: ${summaryPreview.transactions}`,
+          `- Notifications: ${summaryPreview.notifications}`,
+          "",
+          "Do you want to continue?",
+        ].join("\n")
+      );
+
+      if (!confirmed) return;
+
+      const executeResponse = await apiClient.post("/api/seller/system/clear-orders-notifications", {
+        secretKey: secret,
+        dryRun: false,
+      });
+
+      if (executeResponse.data?.success) {
+        toast.success("Orders, transactions, and notifications cleared.");
+        fetchSummary();
+      } else {
+        toast.error(executeResponse.data?.message || "Cleanup failed.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Cleanup failed.");
+    } finally {
+      setIsClearingSystemData(false);
+    }
+  };
 
   const revenueTrend = useMemo(() => {
     return summary?.monthlyRevenue || [];
@@ -316,28 +370,20 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-800">Clear System Data</p>
-            <p className="text-xs text-gray-600">This will permanently delete all orders, transactions, and notification logs. Best for fresh testing.</p>
+            <p className="text-xs text-gray-600">
+              This will permanently delete all orders, transactions, and notification logs.
+              Requires ADMIN_RESET_KEY.
+            </p>
           </div>
           <button 
-            onClick={async () => {
-              const secret = prompt("Enter ADMIN_RESET_KEY to proceed:");
-              if (!secret) return;
-              if (window.confirm("ARE YOU SURE? This cannot be undone.")) {
-                try {
-                  const { data } = await apiClient.post("/api/seller/system/reset", { secretKey: secret });
-                  if (data.success) {
-                    toast.success("System reset successful.");
-                    fetchSummary();
-                  }
-                } catch (e) {
-                  toast.error(e.response?.data?.message || "Reset failed.");
-                }
-              }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-rose-700 transition-colors"
+            onClick={handleClearSystemData}
+            disabled={isClearingSystemData}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-rose-700 transition-colors disabled:opacity-60"
           >
             <Trash2 size={16} />
-            Wipe All Media & Orders
+            {isClearingSystemData
+              ? "Clearing System Data..."
+              : "Clear Orders, Transactions & Notifications"}
           </button>
         </div>
       </div>

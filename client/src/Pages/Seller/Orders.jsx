@@ -4,19 +4,13 @@ import apiClient from "../../shared/lib/apiClient";
 import {
   Search,
   Calendar,
-  Filter,
   CreditCard,
   User,
   ShoppingBag as ShoppingCart,
   Package,
-  DollarSign,
   FileText,
   Truck,
-  RefreshCw,
   Clock,
-  CheckCircle2,
-  AlertCircle,
-  ExternalLink,
   Ban
 } from "lucide-react";
 
@@ -55,8 +49,16 @@ const Orders = () => {
     dateFrom: "",
     dateTo: "",
   });
+  const hasInvalidDateRange =
+    Boolean(filters.dateFrom) &&
+    Boolean(filters.dateTo) &&
+    new Date(filters.dateFrom) > new Date(filters.dateTo);
 
   const fetchOrders = useCallback(async () => {
+    if (hasInvalidDateRange) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await apiClient.get("/api/order/seller", {
@@ -78,7 +80,7 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, hasInvalidDateRange]);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchOrders(), 300);
@@ -167,8 +169,8 @@ const Orders = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          <div className="relative md:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-3">
+          <div className="relative md:col-span-2 xl:col-span-4">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -181,7 +183,7 @@ const Orders = () => {
           <select
             value={filters.status}
             onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+            className="md:col-span-1 xl:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
           >
             <option value="">All Logistics</option>
             {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -189,22 +191,55 @@ const Orders = () => {
           <select
             value={filters.paymentMethod}
             onChange={(e) => setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+            className="md:col-span-1 xl:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
           >
             <option value="">All Payments</option>
             <option value="cod">COD</option>
             <option value="stripe">Stripe</option>
           </select>
-          <div className="relative group">
-            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
-              className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
-            />
+          <div className="md:col-span-2 xl:col-span-3 grid grid-cols-2 gap-2">
+            <div className="relative group">
+              <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="date"
+                aria-label="Start date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-2 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
+              />
+            </div>
+            <div className="relative group">
+              <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="date"
+                aria-label="End date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-2 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
+              />
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() =>
+              setFilters({
+                q: "",
+                status: "",
+                paymentMethod: "",
+                dateFrom: "",
+                dateTo: "",
+              })
+            }
+            className="md:col-span-2 xl:col-span-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Clear Filters
+          </button>
         </div>
+        {hasInvalidDateRange && (
+          <p className="mt-3 text-xs font-semibold text-rose-600">
+            End date must be after start date.
+          </p>
+        )}
       </div>
 
       {/* Orders List */}
