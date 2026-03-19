@@ -147,7 +147,7 @@ const Orders = () => {
     <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8 bg-gray-50/30">
       {/* Search & Header */}
       <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(340px,1fr)_auto] items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2.5 rounded-2xl">
                 <ShoppingCart size={24} className="text-primary" />
@@ -156,6 +156,16 @@ const Orders = () => {
                 <h2 className="text-2xl font-black text-gray-900 leading-none">Order Management</h2>
                 <p className="text-gray-500 text-xs mt-1 font-medium tracking-wide border-t border-gray-50 pt-1">Unified Logistics & Financial Control</p>
             </div>
+          </div>
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Filter by customer or ID..."
+              value={filters.q}
+              onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+              className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm outline-none focus:border-primary/40 focus:bg-white transition-all font-medium"
+            />
           </div>
           <div className="flex items-center gap-2">
              <div className="px-4 py-2 bg-gray-50 rounded-xl flex flex-col items-end">
@@ -169,21 +179,11 @@ const Orders = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-3">
-          <div className="relative md:col-span-2 xl:col-span-4">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Filter by customer or ID..."
-              value={filters.q}
-              onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
-              className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm outline-none focus:border-primary/40 focus:bg-white transition-all font-medium"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-3 items-center">
           <select
             value={filters.status}
             onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-            className="md:col-span-1 xl:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
           >
             <option value="">All Logistics</option>
             {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -191,31 +191,39 @@ const Orders = () => {
           <select
             value={filters.paymentMethod}
             onChange={(e) => setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-            className="md:col-span-1 xl:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
           >
             <option value="">All Payments</option>
             <option value="cod">COD</option>
             <option value="stripe">Stripe</option>
           </select>
-          <div className="md:col-span-2 xl:col-span-3 grid grid-cols-2 gap-2">
-            <div className="relative group">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 rounded-lg bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">
+              Start
+            </span>
+            <div className="relative w-full">
               <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 aria-label="Start date"
                 value={filters.dateFrom}
                 onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
-                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-2 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
+                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
               />
             </div>
-            <div className="relative group">
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 rounded-lg bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600">
+              End
+            </span>
+            <div className="relative w-full">
               <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="date"
                 aria-label="End date"
                 value={filters.dateTo}
                 onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
-                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-2 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
+                className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
               />
             </div>
           </div>
@@ -230,7 +238,7 @@ const Orders = () => {
                 dateTo: "",
               })
             }
-            className="md:col-span-2 xl:col-span-1 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
           >
             Clear Filters
           </button>
