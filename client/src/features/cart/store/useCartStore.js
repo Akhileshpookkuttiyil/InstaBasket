@@ -154,6 +154,21 @@ const useCartStore = create((set, get) => ({
 
     return null;
   },
+
+  fetchUserCart: async () => {
+    try {
+      const { data } = await apiClient.get("/api/cart/get");
+      if (data.success) {
+        const cartItems = data.cartItems || {};
+        set({ cartItems });
+        return cartItems;
+      }
+    } catch (error) {
+      console.error("Fetch cart failed:", error.message);
+    }
+
+    return null;
+  },
 }));
 
 export default useCartStore;

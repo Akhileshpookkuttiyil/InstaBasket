@@ -1,87 +1,103 @@
-import stripe from "stripe";
+import Stripe from "stripe";
 import Transaction from "../models/Transaction.js";
 import Order from "../models/Order.js";
-import mongoose from "mongoose";
 
-const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
+const isStripePaymentMethod = (method) => {
+  const normalized = String(method || "").toLowerCase();
+  return normalized === "stripe" || normalized === "online";
+};
 
-/**
- * Centralized Refund Processing Service
- * Handles: API calls to gateway, Transaction updates, Order status updates
- */
+const getStripePaymentReference = async (order) => {
+  if (order?.stripePaymentIntentId) return order.stripePaymentIntentId;
+  if (order?.paymentId) return order.paymentId;
+
+  const paymentTransaction = await Transaction.findOne({
+    orderId: order._id,
+    transactionType: "PAYMENT",
+    status: "COMPLETED",
+    paymentId: { $exists: true, $ne: null },
+  }).sort({ createdAt: -1 });
+
+  return paymentTransaction?.paymentId || null;
+};
+
 export const processRefund = async (transactionId) => {
   const transaction = await Transaction.findById(transactionId);
-  if (!transaction || transaction.transactionType !== "REFUND" || transaction.status === "COMPLETED") {
-    return { success: false, message: "Invalid or already completed transaction" };
+  if (!transaction || transaction.transactionType !== "REFUND") {
+    return { success: false, message: "Invalid transaction" };
+  }
+  if (transaction.status === "COMPLETED") {
+    return { success: true, message: "Refund already completed" };
   }
 
   const order = await Order.findById(transaction.orderId);
   if (!order) return { success: false, message: "Order not found" };
 
   try {
-    // 1. Initial status change
     transaction.status = "PENDING";
     await transaction.save();
 
     let gatewayRefundId = null;
 
-    if (order.paymentMethod === "Online") {
-      // Find the original payment payment_intent or charge_id
-      const paymentTransaction = await Transaction.findOne({
-        orderId: order._id,
-        transactionType: "PAYMENT",
-        status: "COMPLETED"
-      });
-
-      if (paymentTransaction?.paymentId) {
-        const stripeRefund = await stripeInstance.refunds.create({
-          payment_intent: paymentTransaction.paymentId,
-          amount: Math.round(transaction.amount * 100), // Stripe uses cents
-        });
-        gatewayRefundId = stripeRefund.id;
+    if (isStripePaymentMethod(order.paymentMethod)) {
+      const paymentIntentId = await getStripePaymentReference(order);
+      if (!paymentIntentId) {
+        throw new Error("No Stripe payment reference available for refund.");
       }
+
+      const stripeRefund = await stripeInstance.refunds.create({
+        payment_intent: paymentIntentId,
+        amount: Math.round(Number(transaction.amount || 0) * 100),
+      });
+      gatewayRefundId = stripeRefund.id;
     } else {
-      // COD Refund - Manual process, mark as completed
-      gatewayRefundId = "MANUAL-COD-" + Date.now();
+      gatewayRefundId = `MANUAL-COD-${Date.now()}`;
     }
 
-    // 2. Finalize Status
     transaction.status = "COMPLETED";
     transaction.refundId = gatewayRefundId;
     await transaction.save();
 
-    // Check if total amount refunded matches total order or if still moving
-    const allRefunded = order.totalAmount <= order.refundedAmount;
-    if (allRefunded) {
-      order.paymentStatus = "REFUNDED";
+    order.refundedAmount = Number(order.refundedAmount || 0) + Number(transaction.amount || 0);
+    if (order.refundedAmount >= Number(order.totalAmount || 0)) {
+      order.paymentStatus = "refunded";
     }
-
+    if (!Array.isArray(order.paymentAuditLog)) order.paymentAuditLog = [];
+    order.paymentAuditLog.push({
+      action: "refund_completed",
+      actor: "system",
+      reason: "Refund processed successfully",
+      meta: { refundId: gatewayRefundId, transactionId: transaction._id, amount: transaction.amount },
+    });
     await order.save();
-    return { success: true };
+
+    return { success: true, refundId: gatewayRefundId };
   } catch (error) {
-    console.error("Refund processing failed:", error);
     transaction.status = "FAILED";
     transaction.reason = error.message;
     await transaction.save();
 
-    order.paymentStatus = "REFUND_FAILED";
+    if (!Array.isArray(order.paymentAuditLog)) order.paymentAuditLog = [];
+    order.paymentAuditLog.push({
+      action: "refund_failed",
+      actor: "system",
+      reason: error.message,
+      meta: { transactionId: transaction._id },
+    });
     await order.save();
 
     return { success: false, error: error.message };
   }
 };
 
-/**
- * Background Retry Task (Mock for Chron)
- */
 export const retryFailedRefunds = async () => {
   const failedTransactions = await Transaction.find({
     transactionType: "REFUND",
-    status: "FAILED"
+    status: "FAILED",
   });
 
   for (const tx of failedTransactions) {
-    console.log(`Retrying refund for order: ${tx.orderId}`);
     await processRefund(tx._id);
   }
 };

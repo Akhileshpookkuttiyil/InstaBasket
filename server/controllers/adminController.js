@@ -6,140 +6,204 @@ import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { createUserNotification } from "../utils/notification.js";
+import { processRefund } from "../services/refundService.js";
 
-/**
- * 1. SAFE SYSTEM RESET (Admin Only)
- * Allows clearing testing data without breaking production users unless requested.
- */
 export const resetSystemData = asyncHandler(async (req, res) => {
   const { clearUsers = false, secretKey } = req.body;
 
-  // Additional safety layer
   if (secretKey !== process.env.ADMIN_RESET_KEY) {
-    return res.status(403).json({ success: false, message: "Invalid reset key" });
+    return res.status(403).json({ success: false, message: "Unauthorized reset attempt." });
   }
 
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
-      // 1. Clear Orders & Transactions
       await Order.deleteMany({}).session(session);
       await Transaction.deleteMany({}).session(session);
       await Notification.deleteMany({}).session(session);
-
-      // 2. Reset Inventory Status (Optional based on business rule)
-      // For a full reset, we might want to restock everything
       await Product.updateMany({}, { $set: { "items.returnStatus": "NONE" } }).session(session);
 
-      // 3. Clear Users if toggled
       if (clearUsers) {
-        // KEEP the admin user
         await User.deleteMany({ email: { $ne: process.env.SELLER_EMAIL } }).session(session);
       }
     });
-
-    res.status(200).json({ success: true, message: "System data reset successfully" });
+    return res.status(200).json({ success: true, message: "System environment reset." });
   } finally {
     await session.endSession();
   }
 });
 
-/**
- * 2. MANUAL PAYMENT OVERRIDE
- * Mark as PAID, UNPAID, or REFUNDED manually.
- */
-export const updatePaymentStatusManual = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { status, reason } = req.body;
-  const adminEmail = req.seller?.email || "Admin"; // From authSeller middleware
+// Safe targeted cleanup: only orders/transactions/notifications
+export const clearOrdersAndNotificationsSafe = asyncHandler(async (req, res) => {
+  const { secretKey, dryRun = true } = req.body || {};
 
-  if (!["PAID", "UNPAID", "REFUNDED"].includes(status)) {
-    return res.status(400).json({ success: false, message: "Invalid payment status" });
+  if (secretKey !== process.env.ADMIN_RESET_KEY) {
+    return res.status(403).json({ success: false, message: "Unauthorized clear attempt." });
   }
 
-  const order = await Order.findById(id);
-  if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+  const [ordersCount, transactionsCount, notificationsCount] = await Promise.all([
+    Order.countDocuments({}),
+    Transaction.countDocuments({}),
+    Notification.countDocuments({}),
+  ]);
 
-  // Safety: Prevent marking as PAID if delivered previously (logic check)
-  // Actually, usually it's the other way around. 
-  
+  if (dryRun) {
+    return res.status(200).json({
+      success: true,
+      dryRun: true,
+      message: "Dry run completed. Pass dryRun=false to execute deletion.",
+      summary: {
+        orders: ordersCount,
+        transactions: transactionsCount,
+        notifications: notificationsCount,
+      },
+    });
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    let deleted = {
+      orders: 0,
+      transactions: 0,
+      notifications: 0,
+    };
+
+    await session.withTransaction(async () => {
+      const [ordersResult, transactionsResult, notificationsResult] = await Promise.all([
+        Order.deleteMany({}).session(session),
+        Transaction.deleteMany({}).session(session),
+        Notification.deleteMany({}).session(session),
+      ]);
+
+      deleted = {
+        orders: ordersResult.deletedCount || 0,
+        transactions: transactionsResult.deletedCount || 0,
+        notifications: notificationsResult.deletedCount || 0,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      dryRun: false,
+      message: "Orders, transactions, and notifications cleared safely.",
+      deleted,
+    });
+  } finally {
+    await session.endSession();
+  }
+});
+
+export const updatePaymentStatusManual = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isPaid, reason } = req.body;
+  const sellerEmail = req.seller?.email || "Seller/Admin";
+
+  const order = await Order.findById(id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found" });
+  }
+
+  const targetIsPaid = Boolean(isPaid);
   const oldStatus = order.paymentStatus;
-  
-  // 1. Record Audit Log
+  if (!Array.isArray(order.adminActions)) order.adminActions = [];
+  if (!Array.isArray(order.paymentAuditLog)) order.paymentAuditLog = [];
+  if (!Array.isArray(order.transactions)) order.transactions = [];
+
   order.adminActions.push({
-    action: `MANUAL_PAYMENT_UPDATE: ${oldStatus} -> ${status}`,
-    adminEmail,
+    action: `MANUAL_OVERRIDE: isPaid ${order.isPaid} -> ${targetIsPaid}`,
+    adminEmail: sellerEmail,
     reason,
-    timestamp: new Date()
+    timestamp: new Date(),
+  });
+  order.paymentAuditLog.push({
+    action: targetIsPaid ? "manual_mark_paid" : "manual_mark_unpaid",
+    actor: sellerEmail,
+    reason: reason || "Manual override",
+    meta: { from: oldStatus, to: targetIsPaid ? "paid" : "unpaid" },
   });
 
-  // 2. Create Audit Transaction
   const transaction = await Transaction.create({
     orderId: order._id,
-    transactionType: status === "REFUNDED" ? "REFUND" : "PAYMENT",
-    amount: status === "REFUNDED" ? order.totalAmount : 0, // Manual override usually implies 0 physical cash at checkout time
+    transactionType: targetIsPaid ? "PAYMENT" : "REVERSAL",
+    amount: Number(order.totalAmount || 0),
     status: "COMPLETED",
-    method: "Manual Override",
-    reason: `Admin Override: ${reason}`
+    method: "manual",
+    reason: `Seller Override: ${reason || "No reason provided"}`,
   });
 
-  order.paymentStatus = status;
+  order.paymentStatus = targetIsPaid ? "paid" : "unpaid";
+  order.isPaid = targetIsPaid;
+  if (targetIsPaid) {
+    order.paidAt = order.paidAt || new Date();
+    if (order.orderStatus === "pending") {
+      order.orderStatus = "processing";
+    }
+  }
   order.transactions.push(transaction._id);
-  
+
   await order.save();
 
-  // 3. Notify User
   await createUserNotification({
     userId: order.userId,
     type: "PAYMENT_UPDATE",
     title: "Payment Status Updated",
-    message: `The payment status for your order #${String(order._id).slice(-6).toUpperCase()} has been manually updated to ${status}.`,
-    meta: { orderId: order._id, status }
+    message: `Your order #${String(order._id).slice(-6).toUpperCase()} payment is now ${targetIsPaid ? "PAID" : "UNPAID"}.`,
+    meta: { orderId: order._id, paymentStatus: order.paymentStatus },
   });
 
-  res.status(200).json({ success: true, order });
+  return res.status(200).json({ success: true, order });
 });
 
-/**
- * 3. TRIGGER REFUND (Admin Manual)
- */
 export const initiateManualRefund = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { amount, reason } = req.body;
+  const sellerEmail = req.seller?.email || "Seller/Admin";
 
   const order = await Order.findById(id);
-  if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-
-  if (order.paymentStatus !== "PAID") {
-    return res.status(400).json({ success: false, message: "Only paid orders can be refunded" });
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found" });
   }
 
-  const refundAmount = amount || (order.totalAmount - order.refundedAmount);
-  
-  if (refundAmount <= 0) {
-    return res.status(400).json({ success: false, message: "Invalid refund amount" });
+  if (order.paymentStatus !== "paid") {
+    return res.status(400).json({ success: false, message: "Refunds can only be initiated for paid orders." });
   }
 
-  order.paymentStatus = "REFUND_PENDING";
-  order.adminActions.push({
-    action: "REFUND_INITIATED",
-    adminEmail: req.seller?.email || "Admin",
-    reason
-  });
+  const refundAmount = Number(amount || order.totalAmount - (order.refundedAmount || 0));
+  if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+    return res.status(400).json({ success: false, message: "Insufficient balance for refund." });
+  }
 
-  await order.save();
-
-  // Create Transaction for pending refund
   const trans = await Transaction.create({
     orderId: order._id,
     transactionType: "REFUND",
     amount: refundAmount,
     status: "PENDING",
     method: order.paymentMethod,
-    reason: `Manual Refund: ${reason}`
+    reason: `Seller Initiated: ${reason || "No reason provided"}`,
   });
 
-  // NOTE: Actual gateway call would happen here or via a dedicated service
+  order.adminActions.push({
+    action: "REFUND_INITIATED",
+    adminEmail: sellerEmail,
+    reason,
+  });
+  order.paymentAuditLog.push({
+    action: "refund_initiated",
+    actor: sellerEmail,
+    reason: reason || "Manual refund initiated",
+    meta: { amount: refundAmount, transactionId: trans._id },
+  });
+  order.transactions.push(trans._id);
+  await order.save();
 
-  res.status(200).json({ success: true, message: "Refund initiated", transactionId: trans._id });
+  const refundResult = await processRefund(trans._id);
+  if (refundResult.success) {
+    return res.status(200).json({ success: true, message: "Refund processed successfully." });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Refund record created but gateway call failed.",
+    error: refundResult.error,
+  });
 });

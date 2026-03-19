@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 const formatCurrency = (value, currencySymbol) => {
-  const safeValue = Number(value || 0);
+  const safeValue = Math.round(Number(value || 0));
   return `${currencySymbol}${safeValue.toLocaleString()}`;
 };
 

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import logger from "../utils/logger.js";
 
 const requiredVars = [
   "MONGODB_URI",
@@ -11,7 +12,7 @@ const requiredVars = [
 
 for (const key of requiredVars) {
   if (!process.env[key]) {
-    console.warn(`[env] Missing required variable: ${key}`);
+    logger.warn("Missing required environment variable", { key });
   }
 }
 

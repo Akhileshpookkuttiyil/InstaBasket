@@ -16,6 +16,7 @@ import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoutes.js";
 import ratingRouter from "./routes/ratingRoute.js";
 import notificationRouter from "./routes/notificationRoute.js";
+import logger from "./utils/logger.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.use(
   })
 );
 
+app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json({ limit: "100kb" }));
@@ -70,5 +72,5 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  logger.info("Server started", { port: PORT });
 });

@@ -9,6 +9,7 @@ import {
   placeOrderStripe,
   updateOrderStatus,
   payExistingOrderStripe,
+  verifyPayment,
 } from "../controllers/orderController.js";
 import {
   sellerOrderFiltersSchema,
@@ -22,6 +23,7 @@ orderRouter.post("/cod", authUser, placeOrderCOD);
 orderRouter.post("/stripe", authUser, placeOrderStripe);
 orderRouter.get("/user", authUser, getUserOrders);
 orderRouter.post("/:id/pay", authUser, payExistingOrderStripe);
+orderRouter.get("/verify-payment", authUser, verifyPayment);
 
 // Seller Endpoints
 orderRouter.get("/seller", authSeller, validate(sellerOrderFiltersSchema), getAllOrders);

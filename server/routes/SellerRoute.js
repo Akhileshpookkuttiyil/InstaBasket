@@ -12,6 +12,7 @@ import {
   updateOrderStatus,
 } from "../controllers/orderController.js";
 import {
+  clearOrdersAndNotificationsSafe,
   resetSystemData,
   updatePaymentStatusManual,
   initiateManualRefund,
@@ -40,6 +41,7 @@ sellerRouter.get("/logout", sellerLogout);
 
 // System Management (High Privilege)
 sellerRouter.post("/system/reset", authSeller, resetSystemData);
+sellerRouter.post("/system/clear-orders-notifications", authSeller, clearOrdersAndNotificationsSafe);
 
 // Dashboard & Summary
 sellerRouter.get("/summary", authSeller, getSellerSummary);

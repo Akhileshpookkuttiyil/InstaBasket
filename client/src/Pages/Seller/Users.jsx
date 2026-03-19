@@ -163,7 +163,7 @@ const Users = () => {
                     <td className="px-4 py-3 text-gray-700">{user.ordersCount || 0}</td>
                     <td className="px-4 py-3 text-gray-700">
                       {currency}
-                      {Number(user.totalSpent || 0).toLocaleString()}
+                      {Math.round(Number(user.totalSpent || 0)).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {new Date(user.createdAt).toLocaleDateString()}

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import logger from "../utils/logger.js";
 
 const authUser = async (req, res, next) => {
   const token = req.cookies?.token;
@@ -39,7 +40,8 @@ const authUser = async (req, res, next) => {
     req.user = { id: user._id.toString() };
     next();
   } catch (error) {
-    console.error("authUser error:", error.message);
+    logger.warn("authUser token verification failed", { error: error.message });
+    res.clearCookie("token");
     return res.status(401).json({
       success: false,
       message: "Unauthorized. Invalid or expired token.",
@@ -48,3 +50,4 @@ const authUser = async (req, res, next) => {
 };
 
 export default authUser;
+

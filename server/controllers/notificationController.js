@@ -62,3 +62,44 @@ export const markAllNotificationsRead = asyncHandler(async (req, res) => {
     message: "All notifications marked as read",
   });
 });
+
+// Delete one notification: DELETE /api/notifications/:id
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid notification id",
+    });
+  }
+
+  const deleted = await Notification.findOneAndDelete({ _id: id, userId });
+  if (!deleted) {
+    return res.status(404).json({
+      success: false,
+      message: "Notification not found",
+    });
+  }
+
+  const unreadCount = await Notification.countDocuments({ userId, isRead: false });
+
+  res.status(200).json({
+    success: true,
+    message: "Notification deleted",
+    unreadCount,
+  });
+});
+
+// Delete all notifications: DELETE /api/notifications/clear-all
+export const deleteAllNotifications = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const result = await Notification.deleteMany({ userId });
+
+  res.status(200).json({
+    success: true,
+    message: "All notifications deleted",
+    deletedCount: result.deletedCount || 0,
+  });
+});

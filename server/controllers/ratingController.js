@@ -31,7 +31,7 @@ const refreshProductRatingStats = async (productId) => {
 const findDeliveredOrderForProduct = async (userId, productId) => {
   return Order.findOne({
     userId,
-    orderStatus: "delivered",
+    orderStatus: { $in: ["delivered", "completed"] },
     "items.product": productId,
   }).select("_id orderStatus createdAt");
 };

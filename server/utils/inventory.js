@@ -71,6 +71,7 @@ export const getRestockedProductIds = (beforeSnapshot, afterProducts = []) =>
  */
 export const decreaseStockForItems = async (lineItems, session) => {
   const updatedProducts = [];
+  const updatedLineItems = [];
 
   for (const item of lineItems) {
     const updated = await Product.findOneAndUpdate(
@@ -102,15 +103,21 @@ export const decreaseStockForItems = async (lineItems, session) => {
         success: false,
         failedProductId: item.productId,
         updatedProducts,
+        updatedLineItems,
       };
     }
 
     updatedProducts.push(updated);
+    updatedLineItems.push({
+      productId: String(item.productId),
+      quantity: Number(item.quantity),
+    });
   }
 
   return {
     success: true,
     updatedProducts,
+    updatedLineItems,
   };
 };
 

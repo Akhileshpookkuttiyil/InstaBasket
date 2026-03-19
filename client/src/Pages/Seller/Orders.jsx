@@ -13,49 +13,34 @@ import {
   FileText,
   Truck,
   RefreshCw,
-  Trash2,
-  Lock,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Ban
 } from "lucide-react";
 
-// Updated Logistical Statuses to match Backend Redesign
 const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-  "RETURN_REQUESTED",
-  "RETURNED",
+  "pending",
+  "processing",
+  "delivered",
+  "cancelled",
 ];
 
 const ORDER_STATUS_TRANSITIONS = {
-  PENDING: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: ["RETURN_REQUESTED"],
-  RETURN_REQUESTED: ["RETURNED", "CONFIRMED"],
-  CANCELLED: [],
-  RETURNED: [],
+  pending: ["processing", "cancelled"],
+  processing: ["delivered", "cancelled"],
+  delivered: [],
+  cancelled: [],
 };
 
-const formatAddress = (shippingAddress) => {
-  if (!shippingAddress) return "N/A";
-  if (typeof shippingAddress === "string") return shippingAddress;
-
-  return [
-    shippingAddress.street,
-    shippingAddress.city,
-    shippingAddress.state,
-    shippingAddress.zipcode || shippingAddress.postalCode,
-    shippingAddress.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
-};
+const formatWholeCurrency = (value, currencySymbol) =>
+  `${currencySymbol}${Math.round(Number(value || 0)).toLocaleString()}`;
 
 const getAllowedStatusOptions = (currentStatus) => {
-  const nextStatuses = ORDER_STATUS_TRANSITIONS[currentStatus] || [];
-  return Array.from(new Set([currentStatus, ...nextStatuses]));
+  const normalized = String(currentStatus || "pending").toLowerCase();
+  const nextStatuses = ORDER_STATUS_TRANSITIONS[normalized] || [];
+  return Array.from(new Set([normalized, ...nextStatuses]));
 };
 
 const Orders = () => {
@@ -74,7 +59,7 @@ const Orders = () => {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await apiClient.get("/api/seller/orders", {
+      const { data } = await apiClient.get("/api/order/seller", {
         params: {
           ...filters,
           q: filters.q || undefined,
@@ -87,20 +72,16 @@ const Orders = () => {
 
       if (data.success) {
         setOrders(data.orders || []);
-      } else {
-        toast.error(data.message || "Failed to fetch orders");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || "Failed to fetch orders");
+      toast.error(error.response?.data?.message || "Failed to fetch orders");
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchOrders();
-    }, 250);
+    const timer = setTimeout(() => fetchOrders(), 300);
     return () => clearTimeout(timer);
   }, [fetchOrders]);
 
@@ -108,7 +89,7 @@ const Orders = () => {
     try {
       setStatusUpdatingId(orderId);
       const { data } = await apiClient.patch(`/api/seller/orders/${orderId}/status`, {
-        status: orderStatus,
+        orderStatus: orderStatus,
       });
       if (data.success) {
         setOrders((prev) =>
@@ -116,33 +97,31 @@ const Orders = () => {
             order._id === orderId ? { ...order, orderStatus: data.order.orderStatus } : order
           )
         );
-        toast.success(`Order status moved to ${orderStatus}`);
-      } else {
-        toast.error(data.message || "Update failed");
+        toast.success(`Status: ${orderStatus}`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || "Update failed");
+      toast.error(error.response?.data?.message || "Update failed");
     } finally {
       setStatusUpdatingId("");
     }
   };
 
-  const updatePaymentStatus = async (orderId, status) => {
-    const reason = prompt("Enter reason for manual payment override:");
+  const updatePaymentStatus = async (orderId, isPaid) => {
+    const reason = prompt("Reason for payment override:");
     if (!reason) return;
 
     try {
       const { data } = await apiClient.patch(`/api/seller/orders/${orderId}/payment`, {
-        status,
+        isPaid: isPaid === "true",
         reason,
       });
       if (data.success) {
         setOrders((prev) =>
           prev.map((order) =>
-            order._id === orderId ? { ...order, paymentStatus: status } : order
+            order._id === orderId ? { ...order, isPaid: isPaid === "true" } : order
           )
         );
-        toast.success(`Payment status manually updated to ${status}`);
+        toast.success(`Payment updated`);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Override failed");
@@ -153,8 +132,9 @@ const Orders = () => {
     return orders.reduce(
       (acc, order) => {
         acc.orders += 1;
-        // Naive sum for current view
-        acc.revenue += Number(order.totalAmount || 0);
+        if (["delivered", "completed"].includes(String(order.orderStatus).toLowerCase())) {
+          acc.revenue += Number(order.totalAmount || 0);
+        }
         return acc;
       },
       { orders: 0, revenue: 0 }
@@ -162,160 +142,132 @@ const Orders = () => {
   }, [orders]);
 
   return (
-    <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8">
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <ShoppingCart size={24} className="text-primary" />
-          <h2 className="text-xl font-semibold text-gray-800">Orders Management</h2>
+    <div className="no-scrollbar h-[95vh] overflow-y-scroll p-4 md:p-8 bg-gray-50/30">
+      {/* Search & Header */}
+      <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 p-2.5 rounded-2xl">
+                <ShoppingCart size={24} className="text-primary" />
+            </div>
+            <div>
+                <h2 className="text-2xl font-black text-gray-900 leading-none">Order Management</h2>
+                <p className="text-gray-500 text-xs mt-1 font-medium tracking-wide border-t border-gray-50 pt-1">Unified Logistics & Financial Control</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+             <div className="px-4 py-2 bg-gray-50 rounded-xl flex flex-col items-end">
+                <p className="text-[10px] uppercase font-bold text-gray-400">Total Count</p>
+                <p className="text-lg font-black text-gray-800 leading-none">{totals.orders}</p>
+             </div>
+             <div className="px-4 py-2 bg-emerald-50 rounded-xl flex flex-col items-end border border-emerald-100">
+                <p className="text-[10px] uppercase font-bold text-emerald-500">Net Revenue</p>
+                <p className="text-lg font-black text-emerald-700 leading-none">{formatWholeCurrency(totals.revenue, currency)}</p>
+             </div>
+          </div>
         </div>
-        <p className="mt-1 text-sm text-gray-600">
-          Redesigned Logistical (Order) & Financial (Payment) State Management.
-        </p>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-3">
           <div className="relative md:col-span-2">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search order/user"
+              placeholder="Filter by customer or ID..."
               value={filters.q}
               onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary"
+              className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm outline-none focus:border-primary/40 focus:bg-white transition-all font-medium"
             />
           </div>
-          <div className="relative">
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+          >
+            <option value="">All Logistics</option>
+            {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select
+            value={filters.paymentMethod}
+            onChange={(e) => setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+            className="rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-primary/40 focus:bg-white appearance-none"
+          >
+            <option value="">All Payments</option>
+            <option value="cod">COD</option>
+            <option value="stripe">Stripe</option>
+          </select>
+          <div className="relative group">
             <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary text-gray-600"
+              className="w-full rounded-2xl border border-gray-100 bg-gray-50/50 pl-10 pr-3 py-3 text-sm font-black text-gray-600 outline-none focus:border-primary/40"
             />
-          </div>
-          <div className="relative">
-            <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="date"
-              value={filters.dateTo}
-              onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary text-gray-600"
-            />
-          </div>
-          <div className="relative">
-            <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select
-              value={filters.paymentMethod}
-              onChange={(e) => setFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none text-gray-700"
-            >
-              <option value="">All Payments</option>
-              <option value="COD">COD</option>
-              <option value="Online">Online</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="relative">
-            <Filter size={16} className="absolute left-3 top-1/3 -translate-y-1/2 text-gray-400" />
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-              className="w-full rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none text-gray-700"
-            >
-              <option value="">All Statuses</option>
-              {ORDER_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm flex items-center justify-between">
-            <div>
-              <p className="text-gray-500">Filtered Orders</p>
-              <p className="font-semibold text-gray-800">{totals.orders}</p>
-            </div>
-            <Package size={24} className="text-gray-400/50" />
-          </div>
-          <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm flex items-center justify-between border border-emerald-100">
-            <div>
-              <p className="text-emerald-600 font-medium">Filtered Gross</p>
-              <p className="font-bold text-emerald-800">
-                {currency}
-                {totals.revenue.toLocaleString()}
-              </p>
-            </div>
-            <DollarSign size={24} className="text-emerald-500/50" />
           </div>
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
+      {/* Orders List */}
+      <div className="space-y-4">
         {loading ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
-            Loading orders...
-          </div>
+          <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary border-t-transparent animate-spin rounded-full" /></div>
         ) : orders.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">
-            No orders found.
+          <div className="bg-white rounded-3xl p-20 text-center border border-dashed border-gray-200">
+            <ShoppingCart className="mx-auto text-gray-200 mb-4" size={48} />
+            <p className="text-gray-400 font-bold">No active orders found.</p>
           </div>
         ) : (
           orders.map((order) => (
-            <div
-              key={order._id}
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-            >
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-                <div>
-                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><FileText size={14}/> Order</p>
-                  <p className="font-semibold text-gray-800">
-                    #{String(order._id).slice(-8).toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </p>
+            <div key={order._id} className="bg-white rounded-3xl border border-gray-100 p-6 transition-all hover:shadow-md hover:border-primary/10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* ID & Time */}
+                <div className="space-y-1 border-r border-gray-50 pr-4">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1"><FileText size={12}/> Reference</p>
+                  <p className="text-lg font-black text-gray-900 group-hover:text-primary transition-colors">#{String(order._id).slice(-8).toUpperCase()}</p>
+                  <p className="text-xs text-gray-500 font-medium flex items-center gap-1"><Clock size={12} /> {new Date(order.createdAt).toLocaleString()}</p>
                 </div>
 
-                <div>
-                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><User size={14}/> Customer</p>
-                  <p className="font-medium text-gray-800">
-                    {order.userId?.name || "Unknown"}
-                  </p>
-                  <p className="text-xs text-gray-500">{order.userId?.email || "N/A"}</p>
+                {/* Customer */}
+                <div className="space-y-1 border-r border-gray-50 pr-4">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1"><User size={12}/> Merchant/User</p>
+                  <p className="text-base font-bold text-gray-800 leading-tight">{order.userId?.name || "Anonymous"}</p>
+                  <p className="text-xs text-gray-400 truncate font-medium">{order.userId?.email || "No Email"}</p>
                 </div>
 
-                <div>
-                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><CreditCard size={14}/> Financials</p>
-                  <p className="text-sm text-gray-700">
-                    Method: <span className="font-medium">{order.paymentMethod}</span>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={order.paymentStatus}
-                      onChange={(e) => updatePaymentStatus(order._id, e.target.value)}
-                      className={`text-xs font-bold border-none bg-transparent outline-none cursor-pointer ${order.paymentStatus === 'PAID' ? 'text-green-600' : 'text-amber-600'}`}
-                    >
-                      <option value="PENDING">PENDING</option>
-                      <option value="PAID">PAID</option>
-                      <option value="UNPAID">UNPAID</option>
-                      <option value="REFUNDED">REFUNDED</option>
-                    </select>
+                {/* Financials */}
+                <div className="space-y-1 border-r border-gray-50 pr-4">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1"><CreditCard size={12}/> Financial State</p>
+                  <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 font-medium">{String(order.paymentMethod || "").toUpperCase()}</span>
+                          {(() => {
+                            const paymentState = String(order.paymentStatus || (order.isPaid ? "paid" : "unpaid")).toLowerCase();
+                            return (
+                          <select 
+                            value={paymentState === "refunded" ? "refunded" : paymentState === "paid" ? "paid" : "unpaid"}
+                            onChange={(e) => updatePaymentStatus(order._id, String(e.target.value) === "paid" ? "true" : "false")}
+                            disabled={paymentState === "refunded"}
+                            className={`text-[11px] font-black border-none px-2 py-0.5 rounded cursor-pointer leading-none ${paymentState === "paid" ? 'text-emerald-600 bg-emerald-50' : paymentState === "refunded" ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50 uppercase shadow-sm'}`}
+                          >
+                             <option value="paid" className="bg-white text-emerald-600">PAID</option>
+                             <option value="unpaid" className="bg-white text-amber-600">UNPAID</option>
+                             {paymentState === "refunded" && <option value="refunded" className="bg-white text-blue-600">REFUNDED</option>}
+                          </select>
+                            );
+                          })()}
+                      </div>
+                      <p className="text-xl font-black text-gray-900">{formatWholeCurrency(order.totalAmount, currency)}</p>
                   </div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {currency}
-                    {Number(order.totalAmount || 0).toLocaleString()}
-                  </p>
                 </div>
 
-                <div>
-                  <p className="text-xs uppercase text-gray-500 flex items-center gap-1 mb-1"><Truck size={14}/> Logistics</p>
+                {/* Status selector */}
+                <div className="space-y-1 min-w-[200px]">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-1"><Truck size={12}/> Logistics Update</p>
                   <select
-                    value={order.orderStatus}
+                    value={String(order.orderStatus || "pending").toLowerCase()}
                     onChange={(e) => updateStatus(order._id, e.target.value)}
-                    disabled={statusUpdatingId === order._id || ["CANCELLED", "RETURNED"].includes(order.orderStatus)}
-                    className="mt-1 w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-primary disabled:opacity-60 bg-gray-50"
+                    disabled={statusUpdatingId === order._id || ["cancelled", "delivered", "completed"].includes(String(order.orderStatus || "").toLowerCase())}
+                    className="w-full rounded-xl border border-gray-100 bg-gray-50/50 px-3 py-2 text-sm font-bold text-gray-700 outline-none focus:bg-white disabled:opacity-50 transition-all cursor-pointer hover:border-primary/20 capitalize"
                   >
                     {getAllowedStatusOptions(order.orderStatus).map((status) => (
                       <option key={status} value={status}>
@@ -323,26 +275,25 @@ const Orders = () => {
                       </option>
                     ))}
                   </select>
+                  {statusUpdatingId === order._id && <p className="text-[10px] text-primary animate-pulse font-bold tracking-widest pl-1">UPDATING...</p>}
                 </div>
               </div>
 
-              <div className="mt-3 rounded-lg bg-gray-50 p-3">
-                <div className="flex justify-between items-center mb-2">
-                   <p className="text-xs uppercase text-gray-500 flex items-center gap-1"><Package size={14}/> Items</p>
-                   {order.refundedAmount > 0 && (
-                     <p className="text-xs font-medium text-red-600 italic">Refunded: {currency}{order.refundedAmount.toLocaleString()}</p>
-                   )}
-                </div>
-                <div className="space-y-1">
-                  {(order.items || []).map((item) => (
-                    <div key={item._id} className="flex justify-between text-sm text-gray-700">
-                       <span>{item.product?.name || "Unknown Product"} x {item.quantity}</span>
-                       <span className={`text-xs px-2 py-0.5 rounded-full ${item.returnStatus === 'RETURNED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
-                         {item.returnStatus}
-                       </span>
+              {/* Items Summary Strip */}
+              <div className="mt-4 pt-4 border-t border-gray-50 flex flex-wrap gap-2 items-center">
+                 <p className="text-[10px] uppercase font-bold text-gray-300 mr-2 flex items-center gap-1"><Package size={12} /> Summary:</p>
+                 {(order.items || []).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-2xl border border-gray-100">
+                        <span className="text-xs font-bold text-gray-700">{item.product?.name || "Deleted Product"}</span>
+                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-lg">x{item.quantity}</span>
+                        {item.returnStatus !== 'NONE' && <Ban size={12} className="text-rose-400 ml-1" title={item.returnStatus} />}
                     </div>
-                  ))}
-                </div>
+                 ))}
+                 {order.refundedAmount > 0 && (
+                    <div className="ml-auto text-xs font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                        Refunded: {formatWholeCurrency(order.refundedAmount, currency)}
+                    </div>
+                 )}
               </div>
             </div>
           ))

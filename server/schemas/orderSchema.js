@@ -3,15 +3,11 @@ import { z } from "zod";
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-// Correct Production Statuses
 const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-  "RETURN_REQUESTED",
-  "RETURNED",
+  "pending",
+  "processing",
+  "delivered",
+  "cancelled",
 ];
 
 export const updateOrderStatusSchema = z.object({
@@ -32,7 +28,7 @@ export const sellerOrderFiltersSchema = z.object({
       dateFrom: z.string().regex(dateRegex, "YYYY-MM-DD required").optional(),
       dateTo: z.string().regex(dateRegex, "YYYY-MM-DD required").optional(),
       status: z.enum([...ORDER_STATUSES, ""]).optional(),
-      paymentMethod: z.enum(["COD", "Online", ""]).optional(),
+      paymentMethod: z.enum(["cod", "stripe", ""]).optional(),
       q: z.string().trim().max(100, "Search query is too long").optional(),
     })
     .superRefine((query, ctx) => {

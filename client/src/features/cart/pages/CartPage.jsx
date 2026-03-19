@@ -16,7 +16,7 @@ const CartPage = () => {
     setCartItems,
     removeFromCart,
     updateCartItem,
-    updateUserCart,
+    fetchUserCart,
     getCartCount,
     getCartAmount,
   } = useCartStore();
@@ -27,7 +27,7 @@ const CartPage = () => {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("COD");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cod");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [loading, setLoading] = useState(true);
   const hasSyncedCartRef = useRef(false);
@@ -70,16 +70,13 @@ const CartPage = () => {
       return;
     }
 
-    const syncCartWithInventory = async () => {
-      const syncedCart = await updateUserCart(cartItems);
-      if (syncedCart) {
-        setCartItems(syncedCart);
-      }
+    const syncCartFromBackend = async () => {
+      await fetchUserCart();
       hasSyncedCartRef.current = true;
     };
 
-    syncCartWithInventory();
-  }, [cartItems, user, setCartItems, updateUserCart]);
+    syncCartFromBackend();
+  }, [user, fetchUserCart]);
 
   const fetchAddresses = async () => {
     try {
@@ -134,7 +131,7 @@ const CartPage = () => {
     };
 
     try {
-      if (selectedPaymentMethod === "COD") {
+      if (selectedPaymentMethod === "cod") {
         const { data } = await apiClient.post("/api/order/cod", payload);
         if (data.success) {
           toast.success("Order placed successfully!");
@@ -341,8 +338,8 @@ const CartPage = () => {
             value={selectedPaymentMethod}
             onChange={(e) => setSelectedPaymentMethod(e.target.value)}
           >
-            <option value="COD">Cash On Delivery</option>
-            <option value="Online">Online Payment</option>
+            <option value="cod">Cash On Delivery</option>
+            <option value="stripe">Online Payment</option>
           </select>
         </div>
 
@@ -385,7 +382,7 @@ const CartPage = () => {
         >
           {isPlacingOrder
             ? "Placing Order..."
-            : selectedPaymentMethod === "COD"
+            : selectedPaymentMethod === "cod"
             ? "Place Order (Cash on Delivery)"
             : "Pay Now (Online Payment)"}
         </button>
@@ -395,3 +392,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+

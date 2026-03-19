@@ -4,14 +4,14 @@ import Transaction from "../models/Transaction.js";
 
 /**
  * Net Revenue Calculation:
- * Revenue = Sum of all DELIVERED order amounts - Sum of all successfull REFUND amounts.
+ * Revenue = Sum of all DELIVERED/COMPLETED order amounts - Sum of all successful REFUND amounts.
  * 
  * Order flow:
- * PENDING -> CONFIRMED -> SHIPPED -> DELIVERED (Revenue counted here)
- * If DELIVERED -> RETURN_REQUESTED -> RETURNED -> REFUNDED (Revenue reversed here)
+ * pending -> processing -> delivered -> completed (Revenue counted at completed)
+ * refunded values are deducted from completed revenue.
  */
 export const calculateNetRevenue = async (timeRange = null) => {
-  const query = { orderStatus: "DELIVERED" };
+  const query = { orderStatus: { $in: ["delivered", "completed", "DELIVERED", "COMPLETED"] } };
   const refundQuery = { transactionType: "REFUND", status: "COMPLETED" };
 
   if (timeRange) {
@@ -20,7 +20,7 @@ export const calculateNetRevenue = async (timeRange = null) => {
     refundQuery.createdAt = { $gte: new Date(from), $lte: new Date(to) };
   }
 
-  // 1. Get Delivered Orders Gross Total
+  // 1. Get delivered/completed orders gross total
   const grossResult = await Order.aggregate([
     { $match: query },
     { $group: { _id: null, totalSales: { $sum: "$totalAmount" }, count: { $sum: 1 } } }
@@ -53,7 +53,7 @@ export const getRevenueReport = async (startDate, endDate) => {
     {
       $match: {
         createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
-        orderStatus: "DELIVERED"
+        orderStatus: { $in: ["delivered", "completed", "DELIVERED", "COMPLETED"] }
       }
     },
     {

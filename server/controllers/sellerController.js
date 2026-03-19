@@ -51,9 +51,11 @@ export const sellerLogout = asyncHandler(async (req, res) => {
  * Redesigned Seller Summary to match new Logistical/Financial state machine
  */
 export const getSellerSummary = asyncHandler(async (req, res) => {
-  // Logic: Only count revenue for DELIVERED orders minus REFUNDED amounts
-  const revenueMatch = { orderStatus: "DELIVERED" };
-  const generalOrderMatch = { orderStatus: { $ne: "CANCELLED" } };
+  const deliveredFinalStatuses = ["delivered", "completed", "DELIVERED", "COMPLETED"];
+  const cancelledStatuses = ["cancelled", "CANCELLED"];
+
+  const revenueMatch = { orderStatus: { $in: deliveredFinalStatuses } };
+  const generalOrderMatch = { orderStatus: { $nin: cancelledStatuses } };
 
   const lowStockCriteria = { countInStock: { $gt: 0, $lte: 5 } };
   const outOfStockCriteria = {
@@ -97,11 +99,10 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
       .limit(8)
       .lean(),
     Order.countDocuments(generalOrderMatch),
-    // Pending includes CONFIRMED and SHIPPED (Logistics active)
-    Order.countDocuments({ orderStatus: { $in: ["CONFIRMED", "SHIPPED"] } }),
-    Order.countDocuments({ orderStatus: "DELIVERED" }),
+    Order.countDocuments({ orderStatus: { $in: ["pending", "processing", "PENDING", "CONFIRMED", "SHIPPED"] } }),
+    Order.countDocuments({ orderStatus: { $in: deliveredFinalStatuses } }),
     
-    // Revenue Calculation (Reflecting the new DELIVERED rule)
+    // Revenue Calculation (completed orders minus refunds)
     Order.aggregate([
       { $match: revenueMatch },
       { $group: { _id: null, grossRevenue: { $sum: "$totalAmount" }, totalRefunds: { $sum: "$refundedAmount" } } },
@@ -131,6 +132,13 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
   ]);
 
   const stats = revenueAgg[0] || { grossRevenue: 0, totalRefunds: 0 };
+  const normalizedRecentOrders = (recentOrders || []).map((order) => ({
+    ...order,
+    orderStatus: (() => {
+      const normalizedStatus = String(order.orderStatus || "pending").toLowerCase();
+      return normalizedStatus === "completed" ? "delivered" : normalizedStatus;
+    })(),
+  }));
 
   res.status(200).json({
     success: true,
@@ -155,7 +163,7 @@ export const getSellerSummary = asyncHandler(async (req, res) => {
           orders: item.orders,
         }))
         .reverse(),
-      recentOrders,
+      recentOrders: normalizedRecentOrders,
     },
   });
 });
@@ -182,7 +190,7 @@ export const getSellerUsers = asyncHandler(async (req, res) => {
     {
       $match: {
         userId: { $in: userIds },
-        orderStatus: { $ne: "CANCELLED" }
+        orderStatus: { $nin: ["cancelled", "CANCELLED"] }
       },
     },
     {

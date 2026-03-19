@@ -30,8 +30,16 @@ const transactionSchema = new mongoose.Schema(
     method: {
       type: String,
       required: true,
-      // Supporting Manual and Cash overrides for admin audits
-      enum: ["COD", "Online", "Manual Override", "Cash"],
+      enum: [
+        "cod",
+        "stripe",
+        "manual",
+        "cash",
+        "COD",
+        "Online",
+        "Manual Override",
+        "Cash",
+      ],
     },
     reason: {
       type: String,
