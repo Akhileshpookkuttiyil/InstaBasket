@@ -16,6 +16,59 @@ const generateToken = (user) => {
   });
 };
 
+const toAuthUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  profileImage: user.profileImage || "",
+  googleImage: user.googleImage || "",
+  provider: user.provider || "local",
+  isAdmin: user.isAdmin || false,
+  cartItems: user.cartItems || {},
+});
+
+const respondWithAuth = (res, user, message, statusCode = 200) => {
+  const token = generateToken(user);
+  res.cookie("token", token, cookieOptions);
+
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    user: toAuthUser(user),
+  });
+};
+
+const authenticatePasswordUser = async ({ email, password }) => {
+  const user = await User.findOne({ email }).select("+password");
+
+  if (!user || user.provider === "google") {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Invalid credentials or login method",
+    };
+  }
+
+  if (user.isActive === false) {
+    return {
+      success: false,
+      statusCode: 403,
+      message: "Your account is inactive. Please contact support.",
+    };
+  }
+
+  const isMatch = await bcrypt.compare(password, user.password || "");
+  if (!isMatch) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Secure authentication failed",
+    };
+  }
+
+  return { success: true, user };
+};
+
 // Initiating User (OTP) : POST /api/user/register/initiate
 export const initiateUser = asyncHandler(async (req, res) => {
   let { name, email, password } = req.body;
@@ -233,15 +286,7 @@ export const googleLogin = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: "Google authentication successful",
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      profileImage: user.profileImage,
-      googleImage: user.googleImage,
-      provider: user.provider,
-      isAdmin: user.isAdmin || false,
-    },
+    user: toAuthUser(user),
   });
 });
 
@@ -250,39 +295,15 @@ export const loginUser = asyncHandler(async (req, res) => {
   let { email, password } = req.body;
   email = email.toLowerCase();
 
-  const user = await User.findOne({ email });
-  if (!user || user.provider === 'google') {
-    return res.status(401).json({ success: false, message: "Invalid credentials or login method" });
-  }
-
-  if (user.isActive === false) {
-    return res.status(403).json({
+  const authResult = await authenticatePasswordUser({ email, password });
+  if (!authResult.success) {
+    return res.status(authResult.statusCode).json({
       success: false,
-      message: "Your account is inactive. Please contact support.",
+      message: authResult.message,
     });
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(401).json({ success: false, message: "Secure authentication failed" });
-  }
-
-  const token = generateToken(user);
-  res.cookie("token", token, cookieOptions);
-
-  res.status(200).json({
-    success: true,
-    message: "Welcome back!",
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      profileImage: user.profileImage,
-      googleImage: user.googleImage,
-      provider: user.provider,
-      isAdmin: user.isAdmin || false,
-    },
-  });
+  return respondWithAuth(res, authResult.user, "Welcome back!");
 });
 
 // Logout User : GET /api/user/logout

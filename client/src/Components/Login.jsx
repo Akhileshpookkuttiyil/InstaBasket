@@ -55,6 +55,14 @@ const Login = () => {
   const [name, setName] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
+  const completeLogin = (data) => {
+    setUser(data.user);
+    setCartItems(data.user.cartItems || {});
+    navigate("/");
+    setshowUserLogin(false);
+    window.location.reload();
+  };
+
   const handleResendOtp = async () => {
     try {
       const { data } = await apiClient.post("/api/user/register/resend", {
@@ -86,14 +94,19 @@ const Login = () => {
       const response = await apiClient.post("/api/user/google-login", {
         token: res.access_token,
       });
-      setUser(response.data.user);
       toast.success("Google login success");
-      setshowUserLogin(false);
-      window.location.reload();
+      completeLogin(response.data);
     } catch (error) {
       console.error(error);
       toast.error("Google login failed");
     }
+  };
+
+  const handleUseDemoAccount = () => {
+    setState("login");
+    setEmail(env.demoUserEmail);
+    setPassword(env.demoUserPassword);
+    toast.success("Demo credentials filled. Click Login to continue.");
   };
 
   const handleOtpSubmit = async () => {
@@ -130,11 +143,7 @@ const Login = () => {
 
         if (data.success) {
           toast.success(data.message);
-          setUser(data.user);
-          setCartItems(data.user.cartItems || {});
-          navigate("/");
-          setshowUserLogin(false);
-          window.location.reload();
+          completeLogin(data);
         } else {
           toast.error(data.message);
         }
@@ -162,7 +171,7 @@ const Login = () => {
   return (
     <div
       onClick={() => setshowUserLogin(false)}
-      className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 text-sm text-gray-600"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 px-4 text-sm text-gray-600"
     >
       {state === "register-verify" ? (
         <OtpVerificationForm
@@ -177,7 +186,7 @@ const Login = () => {
         <form
           onSubmit={onSubmitHandler}
           onClick={(e) => e.stopPropagation()}
-          className="relative flex flex-col gap-4 m-auto items-start p-8 py-12 w-80 sm:w-[352px] rounded-lg shadow-xl border border-gray-200 bg-white"
+          className="relative flex flex-col gap-3 w-full max-w-80 sm:max-w-[380px] md:translate-y-6 items-start border border-gray-200 bg-white p-5 py-6 shadow-xl"
         >
           <button
             type="button"
@@ -192,6 +201,12 @@ const Login = () => {
             {state === "login" ? "Login" : "Create Account"}
           </p>
 
+          {state === "login" && (
+            <p className="w-full text-center text-xs leading-5 text-gray-500">
+              You can explore the app using a demo account or sign in with your own credentials.
+            </p>
+          )}
+
           {state === "register-init" && (
             <div className="w-full">
               <p className="mb-1">Name</p>
@@ -201,7 +216,7 @@ const Login = () => {
                   onChange={(e) => setName(e.target.value)}
                   value={name}
                   placeholder="type here"
-                  className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
+                  className="border border-gray-200 w-full py-2 pl-9 pr-3 outline-primary"
                   type="text"
                   required
                 />
@@ -209,31 +224,31 @@ const Login = () => {
             </div>
           )}
           <div className="w-full">
-            <p className="mb-1">Email</p>
+              <p className="mb-1">Email</p>
             <div className="relative">
               <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                onChange={(e) => setEmail(e.target.value)}
-                value={email}
-                placeholder="type here"
-                className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
-                type="email"
-                required
-              />
+                <input
+                  onChange={(e) => setEmail(e.target.value)}
+                  value={email}
+                  placeholder="type here"
+                  className="border border-gray-200 w-full py-2 pl-9 pr-3 outline-primary"
+                  type="email"
+                  required
+                />
             </div>
           </div>
           <div className="w-full">
-            <p className="mb-1">Password</p>
+              <p className="mb-1">Password</p>
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                onChange={(e) => setPassword(e.target.value)}
-                value={password}
-                placeholder="type here"
-                className="border border-gray-200 rounded w-full py-2 pl-9 pr-3 outline-primary"
-                type="password"
-                required
-              />
+                <input
+                  onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  placeholder="type here"
+                  className="border border-gray-200 w-full py-2 pl-9 pr-3 outline-primary"
+                  type="password"
+                  required
+                />
             </div>
           </div>
 
@@ -267,13 +282,23 @@ const Login = () => {
             {state === "login" ? "Login" : "Continue"}
           </button>
 
+          {state === "login" && (
+            <button
+              type="button"
+              onClick={handleUseDemoAccount}
+              className="w-full py-2 border border-primary/30 text-primary hover:bg-primary/5 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Use Demo Account
+            </button>
+          )}
+
           {env.googleClientId ? (
             <GoogleLoginButton onSuccess={handleGoogleLogin} />
           ) : (
             <button
               type="button"
               disabled
-              className="w-full py-2 border border-gray-200 rounded-md bg-gray-100 text-gray-400 cursor-not-allowed inline-flex items-center justify-center gap-2"
+              className="w-full py-2 border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed inline-flex items-center justify-center gap-2"
               title="Set VITE_GOOGLE_CLIENT_ID to enable Google login"
             >
               <svg viewBox="0 0 24 24" className="w-4 h-4 opacity-60" aria-hidden="true">
