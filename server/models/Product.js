@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Define a simplified Product schema
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -76,7 +75,6 @@ productSchema.pre("save", function (next) {
   next();
 });
 
-// Virtual field to check if the product is expired (for perishable goods)
 productSchema.virtual("isExpired").get(function () {
   if (this.expiryDate) {
     return new Date() > this.expiryDate;
@@ -84,9 +82,7 @@ productSchema.virtual("isExpired").get(function () {
   return false; // If no expiry date, consider it not expired
 });
 
-// Create the model only if it doesn't exist
 const Product =
   mongoose.models.product || mongoose.model("product", productSchema);
 
 export default Product;
-// This code defines a Mongoose schema for a Product model in a Node.js application. The schema includes fields for name, image, brand, category, price, offer price, stock count, and an optional expiry date. It also includes virtual fields to check if the product is in stock and if it is expired. The model is exported for use in other parts of the application.

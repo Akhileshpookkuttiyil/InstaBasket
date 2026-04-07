@@ -90,14 +90,3 @@ export const processRefund = async (transactionId) => {
     return { success: false, error: error.message };
   }
 };
-
-export const retryFailedRefunds = async () => {
-  const failedTransactions = await Transaction.find({
-    transactionType: "REFUND",
-    status: "FAILED",
-  });
-
-  for (const tx of failedTransactions) {
-    await processRefund(tx._id);
-  }
-};

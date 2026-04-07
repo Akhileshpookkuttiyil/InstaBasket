@@ -8,7 +8,6 @@ const useAuthStore = create((set) => ({
   showUserLogin: false,
   loading: true,
 
-  setShowUserLogin: (show) => set({ showUserLogin: show }),
   setshowUserLogin: (show) => set({ showUserLogin: show }),
   setIsSeller: (status) => set({ isSeller: status }),
 
