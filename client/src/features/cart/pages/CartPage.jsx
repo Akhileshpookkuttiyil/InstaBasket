@@ -7,6 +7,7 @@ import useCartStore from "../store/useCartStore";
 import useProductStore from "../../product/store/useProductStore";
 import apiClient from "../../../shared/lib/apiClient";
 import { env } from "../../../shared/config/env";
+import { getImageFallback, getImageUrl } from "../../../shared/lib/image";
 
 const CartPage = () => {
   const { user } = useAuthStore();
@@ -217,10 +218,12 @@ const CartPage = () => {
                 }}
               >
                 <img
-                  src={product.image[0]}
+                  src={getImageUrl(product.image?.[0], "product")}
                   alt={product.name}
                   className="object-cover w-full h-full"
-                  onError={(e) => (e.target.src = assets.logo)}
+                  onError={(event) => {
+                    event.currentTarget.src = getImageFallback("product");
+                  }}
                 />
               </div>
               <div>

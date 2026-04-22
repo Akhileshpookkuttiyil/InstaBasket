@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Star, X, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "../shared/lib/apiClient";
+import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 const RatingModal = ({ productId, productName, productImage, onClose, onSaved }) => {
   const [rating, setRating] = useState(0);
@@ -116,9 +117,12 @@ const RatingModal = ({ productId, productName, productImage, onClose, onSaved })
         <div className="p-5">
           <div className="flex gap-3 mb-5">
             <img
-              src={productImage || "/placeholder.jpg"}
+              src={getImageUrl(productImage, "product")}
               alt={productName}
               className="w-14 h-14 object-cover rounded border border-gray-200"
+              onError={(event) => {
+                event.currentTarget.src = getImageFallback("product");
+              }}
             />
             <div>
               <p className="font-medium text-gray-800">{productName}</p>

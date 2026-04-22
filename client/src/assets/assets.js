@@ -20,18 +20,6 @@ import box_icon from "./box_icon.svg";
 import trust_icon from "./trust_icon.svg";
 import black_arrow_icon from "./black_arrow_icon.svg";
 import white_arrow_icon from "./white_arrow_icon.svg";
-import main_banner_bg from "./main_banner_bg.png";
-import main_banner_bg_sm from "./main_banner_bg_sm.png";
-import bottom_banner_image from "./bottom_banner_image.png";
-import bottom_banner_image_sm from "./bottom_banner_image_sm.png";
-import add_address_iamge from "./add_address_image.svg";
-import organic_vegitable_image from "./organic_vegitable_image.png";
-import fresh_fruits_image from "./fresh_fruits_image.png";
-import bottles_image from "./bottles_image.png";
-import maggi_image from "./maggi_image.png";
-import dairy_product_image from "./dairy_product_image.png";
-import bakery_image from "./bakery_image.png";
-import grain_image from "./grain_image.png";
 
 export const assets = {
   logo,
@@ -55,58 +43,8 @@ export const assets = {
   trust_icon,
   black_arrow_icon,
   white_arrow_icon,
-  main_banner_bg,
-  main_banner_bg_sm,
-  bottom_banner_image,
-  bottom_banner_image_sm,
-  add_address_iamge,
   box_icon,
 };
-
-export const categories = [
-  {
-    text: "Organic veggies",
-    path: "Vegetables",
-    image: organic_vegitable_image,
-    bgColor: "#FEF6DA",
-  },
-  {
-    text: "Fresh Fruits",
-    path: "Fruits",
-    image: fresh_fruits_image,
-    bgColor: "#FEE0E0",
-  },
-  {
-    text: "Cold Drinks",
-    path: "Drinks",
-    image: bottles_image,
-    bgColor: "#F0F5DE",
-  },
-  {
-    text: "Instant Food",
-    path: "Instant",
-    image: maggi_image,
-    bgColor: "#E1F5EC",
-  },
-  {
-    text: "Dairy Products",
-    path: "Dairy",
-    image: dairy_product_image,
-    bgColor: "#FEE6CD",
-  },
-  {
-    text: "Bakery & Breads",
-    path: "Bakery",
-    image: bakery_image,
-    bgColor: "#E0F6FE",
-  },
-  {
-    text: "Grains & Cereals",
-    path: "Grains",
-    image: grain_image,
-    bgColor: "#F1E3F9",
-  },
-];
 
 export const footerLinks = [
   {
@@ -137,28 +75,5 @@ export const footerLinks = [
       { text: "Facebook", url: "#" },
       { text: "YouTube", url: "#" },
     ],
-  },
-];
-
-export const features = [
-  {
-    icon: delivery_truck_icon,
-    title: "Fastest Delivery",
-    description: "Groceries delivered in under 30 minutes.",
-  },
-  {
-    icon: leaf_icon,
-    title: "Freshness Guaranteed",
-    description: "Fresh produce straight from the source.",
-  },
-  {
-    icon: coin_icon,
-    title: "Affordable Prices",
-    description: "Quality groceries at unbeatable prices.",
-  },
-  {
-    icon: trust_icon,
-    title: "Trusted by Thousands",
-    description: "Loved by 10,000+ happy customers.",
   },
 ];

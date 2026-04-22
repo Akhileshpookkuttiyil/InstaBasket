@@ -18,6 +18,7 @@ import {
   CheckCheck,
   Circle,
   Trash2,
+  Shield,
 } from "lucide-react";
 import apiClient from "../shared/lib/apiClient";
 import Avatar from "./Avatar";
@@ -564,6 +565,18 @@ const Navbar = () => {
                 >
                   <Settings size={16} className="text-gray-500" /> Settings
                 </li>
+                {user?.isAdmin && (
+                  <li
+                    role="menuitem"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      navigate("/admin");
+                    }}
+                    className="p-2 px-3 hover:bg-primary/10 cursor-pointer flex items-center gap-2 text-gray-700"
+                  >
+                    <Shield size={16} className="text-gray-500" /> Admin Console
+                  </li>
+                )}
                 <li
                   role="menuitem"
                   onClick={() => {
@@ -654,6 +667,11 @@ const Navbar = () => {
               <NavLink to="/settings" onClick={() => setMenuOpen(false)}>
                 Settings
               </NavLink>
+              {user?.isAdmin && (
+                <NavLink to="/admin" onClick={() => setMenuOpen(false)}>
+                  Admin Console
+                </NavLink>
+              )}
             </>
           )}
           <NavLink to="/contact" onClick={() => setMenuOpen(false)}>

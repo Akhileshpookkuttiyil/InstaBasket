@@ -3,6 +3,7 @@ import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import useCartStore from "../store/useCartStore";
 import useAuthStore from "../store/useAuthStore";
+import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
@@ -48,10 +49,10 @@ const ProductCard = ({ product }) => {
         )}
         <img
           className="relative z-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-          src={product?.image?.[0]}
+          src={getImageUrl(product?.image?.[0], "product")}
           alt={product?.name || "Product"}
           onError={(e) => {
-            e.currentTarget.src = assets.fallback_image;
+            e.currentTarget.src = getImageFallback("product");
           }}
         />
       </div>

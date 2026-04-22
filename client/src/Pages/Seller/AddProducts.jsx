@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { assets, categories } from "../../assets/assets";
+import { assets } from "../../assets/assets";
 import toast from "react-hot-toast";
 import apiClient from "../../shared/lib/apiClient";
 import useProductStore from "../../store/useProductStore";
+import useContentStore from "../../store/useContentStore";
+import { getImageFallback } from "../../shared/lib/image";
 import {
   PackagePlus,
   Image as ImageIcon,
@@ -26,6 +28,7 @@ const initialFormData = {
 
 const AddProducts = () => {
   const { fetchProducts } = useProductStore();
+  const { categories } = useContentStore();
   const [formData, setFormData] = useState(initialFormData);
   const [files, setFiles] = useState([]);
 
@@ -135,6 +138,9 @@ const AddProducts = () => {
                     }
                     alt="Upload"
                     className="max-w-24 cursor-pointer border border-gray-200 rounded shadow-sm"
+                    onError={(event) => {
+                      event.currentTarget.src = getImageFallback("marketing");
+                    }}
                   />
                 </label>
               ))}
@@ -188,9 +194,9 @@ const AddProducts = () => {
             required
           >
             <option value="">Select Category</option>
-            {categories.map((category, index) => (
-              <option key={index} value={category.path}>
-                {category.path}
+            {categories.map((category) => (
+              <option key={category.slug} value={category.path}>
+                {category.name}
               </option>
             ))}
           </select>

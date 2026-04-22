@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 import useAuthStore from "../store/useAuthStore";
@@ -48,19 +48,24 @@ const Login = () => {
   const { setshowUserLogin, setUser } = useAuthStore();
   const { setCartItems } = useCartStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [state, setState] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const returnTo =
+    typeof location.state?.from === "string" &&
+    location.state.from.startsWith("/")
+      ? location.state.from
+      : "/";
 
   const completeLogin = (data) => {
     setUser(data.user);
     setCartItems(data.user.cartItems || {});
-    navigate("/");
     setshowUserLogin(false);
-    window.location.reload();
+    navigate(returnTo, { replace: true });
   };
 
   const handleResendOtp = async () => {
@@ -122,7 +127,7 @@ const Login = () => {
         setUser(data.user);
         setCartItems(data.user.cartItems || {});
         setshowUserLogin(false);
-        navigate("/");
+        navigate(returnTo, { replace: true });
       } else {
         toast.error(data.message);
       }

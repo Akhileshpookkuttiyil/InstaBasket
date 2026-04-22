@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { assets } from "../assets/assets";
 import useAuthStore from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import apiClient from "../shared/lib/apiClient";
+import useContentStore from "../store/useContentStore";
+import { defaultHomeContent } from "../shared/content/defaultContent";
+import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 // Controlled reusable input field
 const InputField = ({
@@ -30,6 +32,7 @@ const InputField = ({
 
 const AddAddress = () => {
   const { user, loading } = useAuthStore();
+  const { homeContent } = useContentStore();
   const navigate = useNavigate();
 
   const initialAddressState = {
@@ -108,6 +111,10 @@ const AddAddress = () => {
   const onResetHandler = () => {
     setAddress(initialAddressState);
   };
+
+  const addressIllustration =
+    homeContent?.illustrations?.address ||
+    defaultHomeContent.illustrations.address;
 
   return (
     <div className="mt-16 pb-16 px-4">
@@ -226,9 +233,11 @@ const AddAddress = () => {
         {/* Image Section */}
         <img
           className="md:mr-8 mb-12 md:mt-0 max-w-sm w-full object-contain"
-          src={assets.add_address_iamge || "/fallback-image.jpg"}
+          src={getImageUrl(addressIllustration, "marketing")}
           alt="Add Address"
-          onError={(e) => (e.currentTarget.src = "/fallback-image.jpg")}
+          onError={(event) => {
+            event.currentTarget.src = getImageFallback("marketing");
+          }}
         />
       </div>
     </div>

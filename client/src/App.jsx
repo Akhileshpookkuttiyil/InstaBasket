@@ -24,16 +24,26 @@ import AddProducts from "./Pages/Seller/AddProducts";
 import ProductsList from "./Pages/Seller/ProductsList";
 import Orders from "./Pages/Seller/Orders";
 import Users from "./Pages/Seller/Users";
+import AdminLayout from "./Pages/Admin/AdminLayout";
+import AdminLogin from "./Pages/Admin/AdminLogin";
+import AdminOverview from "./Pages/Admin/AdminOverview";
+import CategoryManagement from "./Pages/Admin/CategoryManagement";
+import HomepageManagement from "./Pages/Admin/HomepageManagement";
+import AdminRoute from "./features/auth/components/AdminRoute";
 import useAuthStore from "./features/auth/store/useAuthStore";
 import useProductStore from "./features/product/store/useProductStore";
 import useCartStore from "./features/cart/store/useCartStore";
+import useContentStore from "./store/useContentStore";
 
 const App = () => {
-  const isSellerPath = useLocation().pathname.includes("/seller");
+  const location = useLocation();
+  const isSellerPath = location.pathname.includes("/seller");
+  const isAdminPath = location.pathname.includes("/admin");
 
   const { isSeller, showUserLogin, fetchUser, fetchSellerStatus } = useAuthStore();
   const { fetchProducts } = useProductStore();
   const { setCartItems } = useCartStore();
+  const { fetchContent } = useContentStore();
 
   useEffect(() => {
     const init = async () => {
@@ -42,11 +52,12 @@ const App = () => {
         setCartItems(cartItems);
       }
       await fetchProducts();
+      await fetchContent();
       await fetchSellerStatus();
     };
 
     init();
-  }, [fetchProducts, fetchSellerStatus, fetchUser, setCartItems]);
+  }, [fetchContent, fetchProducts, fetchSellerStatus, fetchUser, setCartItems]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -59,11 +70,11 @@ const App = () => {
 
   return (
     <div className="text-default min-h-screen text-gray-700 bg-white">
-      {!isSellerPath && <Navbar />}
+      {!isSellerPath && !isAdminPath && <Navbar />}
       {showUserLogin && <Login />}
       <Toaster />
 
-      <div className={`${isSellerPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`}>
+      <div className={`${isSellerPath || isAdminPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<AllProducts />} />
@@ -80,6 +91,14 @@ const App = () => {
           <Route path="/loader" element={<Loading />} />
           <Route path="/users" element={<Navigate to="/seller/users" replace />} />
           <Route path="/orders" element={<Navigate to="/seller/orders" replace />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="categories" element={<CategoryManagement />} />
+              <Route path="homepage" element={<HomepageManagement />} />
+            </Route>
+          </Route>
           <Route
             path="/seller"
             element={isSeller ? <SellerLayout /> : <SellerLogin />}
@@ -93,7 +112,7 @@ const App = () => {
         </Routes>
       </div>
 
-      {!isSellerPath && <Footer />}
+      {!isSellerPath && !isAdminPath && <Footer />}
     </div>
   );
 };

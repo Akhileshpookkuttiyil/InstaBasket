@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { categories } from "../../assets/assets";
 import apiClient from "../../shared/lib/apiClient";
 import useProductStore from "../../store/useProductStore";
+import useContentStore from "../../store/useContentStore";
+import { getImageFallback, getImageUrl } from "../../shared/lib/image";
 import {
   Search,
   Filter,
@@ -34,6 +35,7 @@ const getEditableForm = (product) => ({
 
 const ProductsList = () => {
   const { fetchProducts } = useProductStore();
+  const { categories } = useContentStore();
   const [products, setProducts] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -196,8 +198,8 @@ const ProductsList = () => {
               >
                 <option value="all">All Categories</option>
                 {categories.map((cat) => (
-                  <option key={cat.path} value={cat.path}>
-                    {cat.path}
+                  <option key={cat.slug} value={cat.path}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -242,10 +244,13 @@ const ProductsList = () => {
                     <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
                       <div className="border border-gray-300 rounded p-2">
                         <img
-                          src={product.image[0]}
+                          src={getImageUrl(product.image?.[0], "product")}
                           alt={`Image of ${product.name}`}
                           className="w-16"
                           loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.src = getImageFallback("product");
+                          }}
                         />
                       </div>
                       <span className="truncate max-sm:hidden w-full">{product.name}</span>
@@ -360,8 +365,8 @@ const ProductsList = () => {
                   required
                 >
                   {categories.map((item) => (
-                    <option key={item.path} value={item.path}>
-                      {item.path}
+                    <option key={item.slug} value={item.path}>
+                      {item.name}
                     </option>
                   ))}
                 </select>

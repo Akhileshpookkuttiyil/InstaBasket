@@ -1,31 +1,45 @@
 import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import useProductStore from "../store/useProductStore";
-import { categories } from "../assets/assets";
 import ProductCard from "./ProductCard";
+import useContentStore from "../store/useContentStore";
 
 const ProductCategory = () => {
   const { products } = useProductStore();
+  const { categories, categoriesLoading } = useContentStore();
   const { category } = useParams();
 
-  // Normalize the category for case-insensitive matching
   const categoryName = category?.toLowerCase();
+  const normalizeValue = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, "");
 
-  // Find the corresponding category object
   const foundCategory = useMemo(() => 
-    categories.find((item) => item.path.toLowerCase() === categoryName),
-    [categoryName]
+    categories.find((item) => {
+      const slug = String(item.slug || "").toLowerCase();
+      return slug === categoryName;
+    }),
+    [categories, categoryName]
   );
 
-  // Filter products by category
   const productsInCategory = useMemo(() => 
     products.filter((product) => 
-      typeof product.category === "string" && product.category.toLowerCase() === categoryName
+      typeof product.category === "string" &&
+      normalizeValue(product.category) === normalizeValue(categoryName)
     ),
     [products, categoryName]
   );
 
-  // Render if category not found
+  if (categoriesLoading) {
+    return (
+      <div className="mt-16 flex items-center justify-center">
+        <p className="text-lg font-medium text-slate-500">Loading category...</p>
+      </div>
+    );
+  }
+
   if (!foundCategory) {
     return (
       <div className="mt-16 flex items-center justify-center">
@@ -34,13 +48,12 @@ const ProductCategory = () => {
     );
   }
 
-  // Main component rendering
   return (
     <div className="mt-16">
       {/* Header */}
       <div className="flex flex-col items-end w-max">
         <p className="text-2xl font-medium">
-          {foundCategory.text.toUpperCase()}
+          {(foundCategory.text || foundCategory.name).toUpperCase()}
         </p>
         <div className="w-16 h-0.5 rounded-full bg-primary"></div>
       </div>

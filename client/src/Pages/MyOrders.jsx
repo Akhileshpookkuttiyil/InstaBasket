@@ -5,6 +5,7 @@ import useAuthStore from "../store/useAuthStore";
 import useCartStore from "../store/useCartStore";
 import apiClient from "../shared/lib/apiClient";
 import RatingModal from "../Components/RatingModal";
+import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 const normalizePaymentMethod = (value = "") => {
   const normalized = String(value).toLowerCase();
@@ -238,9 +239,12 @@ const MyOrders = () => {
                         className="bg-gray-50 p-2 rounded-2xl border border-gray-100 overflow-hidden w-20 h-20 flex-shrink-0"
                       >
                         <img
-                          src={image?.[0] || "/placeholder.jpg"}
+                          src={getImageUrl(image?.[0], "product")}
                           alt={name}
                           className="w-full h-full object-cover mix-blend-multiply transition-transform hover:scale-110"
+                          onError={(event) => {
+                            event.currentTarget.src = getImageFallback("product");
+                          }}
                         />
                       </div>
                       <div className="max-w-[220px]">
