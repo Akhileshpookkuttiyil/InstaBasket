@@ -16,6 +16,9 @@ import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoutes.js";
 import ratingRouter from "./routes/ratingRoute.js";
 import notificationRouter from "./routes/notificationRoute.js";
+import categoryRouter from "./routes/categoryRoute.js";
+import siteContentRouter from "./routes/siteContentRoute.js";
+import adminRouter from "./routes/adminRoute.js";
 import logger from "./utils/logger.js";
 
 const app = express();
@@ -60,6 +63,9 @@ app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/ratings", ratingRouter);
 app.use("/api/notifications", notificationRouter);
+app.use("/api/categories", categoryRouter);
+app.use("/api/site-content", siteContentRouter);
+app.use("/api/admin", adminRouter);
 
 // Unmatched routes handler (404)
 app.use((req, res) => {

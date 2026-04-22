@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "server": "nodemon server.js"
+    "server": "nodemon server.js",
+    "migrate:images": "node scripts/migrateLegacyImages.js",
+    "seed:admin": "node scripts/createDummyAdmin.js"
   },
   "keywords": [],
   "author": "",

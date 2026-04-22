@@ -41,11 +41,19 @@ const respondWithAuth = (res, user, message, statusCode = 200) => {
 const authenticatePasswordUser = async ({ email, password }) => {
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user || user.provider === "google") {
+  if (!user) {
     return {
       success: false,
       statusCode: 401,
-      message: "Invalid credentials or login method",
+      message: "Invalid email or password",
+    };
+  }
+
+  if (user.provider === "google" && !user.password) {
+    return {
+      success: false,
+      statusCode: 400,
+      message: "This account uses Google sign-in and does not have a password.",
     };
   }
 
@@ -62,11 +70,29 @@ const authenticatePasswordUser = async ({ email, password }) => {
     return {
       success: false,
       statusCode: 401,
-      message: "Secure authentication failed",
+      message: "Invalid email or password",
     };
   }
 
   return { success: true, user };
+};
+
+const authenticateAdminUser = async ({ email, password }) => {
+  const authResult = await authenticatePasswordUser({ email, password });
+
+  if (!authResult.success) {
+    return authResult;
+  }
+
+  if (authResult.user.isAdmin !== true) {
+    return {
+      success: false,
+      statusCode: 403,
+      message: "Access denied: Not an admin",
+    };
+  }
+
+  return authResult;
 };
 
 // Initiating User (OTP) : POST /api/user/register/initiate
@@ -304,6 +330,22 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   return respondWithAuth(res, authResult.user, "Welcome back!");
+});
+
+// Login Admin : POST /api/admin/login
+export const loginAdmin = asyncHandler(async (req, res) => {
+  let { email, password } = req.body;
+  email = email.toLowerCase();
+
+  const authResult = await authenticateAdminUser({ email, password });
+  if (!authResult.success) {
+    return res.status(authResult.statusCode).json({
+      success: false,
+      message: authResult.message,
+    });
+  }
+
+  return respondWithAuth(res, authResult.user, "Admin login successful");
 });
 
 // Logout User : GET /api/user/logout
