@@ -5,9 +5,18 @@ import { EmptyState, Panel, StatCard } from "./components/AdminSurface";
 
 const AdminOverview = () => {
   const { user } = useAuthStore();
-  const { categories, homeContent, categoriesError, homeContentError } = useContentStore();
+  const {
+    categories,
+    homeContent,
+    categoriesLoading,
+    homeContentLoading,
+    categoriesError,
+    homeContentError,
+  } = useContentStore();
+  const categoryList = categories || [];
+  const isLoading = categoriesLoading || homeContentLoading;
 
-  const activeCategories = categories.filter((category) => category.isActive !== false);
+  const activeCategories = categoryList.filter((category) => category.isActive !== false);
   const heroTitle = homeContent?.heroBanner?.title || "Not configured";
   const hasContentIssue = Boolean(categoriesError || homeContentError);
 
@@ -30,18 +39,30 @@ const AdminOverview = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           label="Active categories"
-          value={activeCategories.length}
-          hint={`${categories.length} total categories in the catalog`}
+          value={isLoading ? "..." : activeCategories.length}
+          hint={
+            isLoading
+              ? "Loading category metrics"
+              : `${categoryList.length} total categories in the catalog`
+          }
         />
         <StatCard
           label="Homepage features"
-          value={homeContent?.features?.length || 0}
-          hint="Feature blocks currently configured for the marketing section"
+          value={isLoading ? "..." : homeContent?.features?.length || 0}
+          hint={
+            isLoading
+              ? "Loading homepage metrics"
+              : "Feature blocks currently configured for the marketing section"
+          }
         />
         <StatCard
           label="Hero headline"
-          value={heroTitle}
-          hint="Current homepage hero title from live content"
+          value={isLoading ? "Loading..." : heroTitle}
+          hint={
+            isLoading
+              ? "Fetching live homepage content"
+              : "Current homepage hero title from live content"
+          }
         />
       </div>
 

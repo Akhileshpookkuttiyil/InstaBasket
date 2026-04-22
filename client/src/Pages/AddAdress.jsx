@@ -32,7 +32,7 @@ const InputField = ({
 
 const AddAddress = () => {
   const { user, loading } = useAuthStore();
-  const { homeContent } = useContentStore();
+  const { homeContent, homeContentLoading } = useContentStore();
   const navigate = useNavigate();
 
   const initialAddressState = {
@@ -231,14 +231,18 @@ const AddAddress = () => {
         </div>
 
         {/* Image Section */}
-        <img
-          className="md:mr-8 mb-12 md:mt-0 max-w-sm w-full object-contain"
-          src={getImageUrl(addressIllustration, "marketing")}
-          alt="Add Address"
-          onError={(event) => {
-            event.currentTarget.src = getImageFallback("marketing");
-          }}
-        />
+        {homeContentLoading || homeContent === null ? (
+          <div className="md:mr-8 mb-12 h-72 w-full max-w-sm animate-pulse rounded-[32px] bg-slate-100 md:mt-0" />
+        ) : (
+          <img
+            className="md:mr-8 mb-12 md:mt-0 max-w-sm w-full object-contain"
+            src={getImageUrl(addressIllustration, "marketing")}
+            alt="Add Address"
+            onError={(event) => {
+              event.currentTarget.src = getImageFallback("marketing");
+            }}
+          />
+        )}
       </div>
     </div>
   );

@@ -28,7 +28,8 @@ const initialFormData = {
 
 const AddProducts = () => {
   const { fetchProducts } = useProductStore();
-  const { categories } = useContentStore();
+  const { categories, categoriesLoading } = useContentStore();
+  const categoryList = categories || [];
   const [formData, setFormData] = useState(initialFormData);
   const [files, setFiles] = useState([]);
 
@@ -192,9 +193,14 @@ const AddProducts = () => {
             value={formData.category}
             onChange={handleInputChange}
             required
+            disabled={categoriesLoading || categories === null}
           >
-            <option value="">Select Category</option>
-            {categories.map((category) => (
+            <option value="">
+              {categoriesLoading || categories === null
+                ? "Loading categories..."
+                : "Select Category"}
+            </option>
+            {categoryList.map((category) => (
               <option key={category.slug} value={category.path}>
                 {category.name}
               </option>

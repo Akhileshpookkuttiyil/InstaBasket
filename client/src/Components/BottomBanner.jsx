@@ -4,11 +4,34 @@ import { defaultHomeContent } from "../shared/content/defaultContent";
 import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 const BottomBanner = () => {
-  const { homeContent } = useContentStore();
+  const { homeContent, homeContentLoading } = useContentStore();
   const bottomBanner = homeContent?.bottomBanner || defaultHomeContent.bottomBanner;
   const features = homeContent?.features?.length
     ? homeContent.features
     : defaultHomeContent.features;
+
+  if (homeContentLoading || homeContent === null) {
+    return (
+      <div className="relative mt-24 overflow-hidden rounded-[32px] bg-slate-100">
+        <div className="hidden h-[360px] animate-pulse md:block" />
+        <div className="h-[420px] animate-pulse md:hidden" />
+        <div className="absolute inset-0 flex flex-col justify-center px-6 md:items-end md:px-24">
+          <div className="w-full max-w-md">
+            <div className="h-10 w-2/3 rounded-full bg-white/85" />
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`feature-skeleton-${index}`} className="mt-6 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-white/80" />
+                <div className="flex-1">
+                  <div className="h-4 w-2/3 rounded-full bg-white/80" />
+                  <div className="mt-2 h-3 w-full rounded-full bg-white/60" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mt-24">

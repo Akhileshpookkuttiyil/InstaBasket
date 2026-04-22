@@ -6,6 +6,7 @@ import { getImageUrl, getImageFallback } from "../shared/lib/image";
 const Categories = () => {
   const navigate = useNavigate();
   const { categories, categoriesLoading, categoriesError } = useContentStore();
+  const hasCategories = Array.isArray(categories) && categories.length > 0;
 
   return (
     <div className="mt-16">
@@ -24,7 +25,7 @@ const Categories = () => {
         <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-5 text-sm text-rose-700">
           {categoriesError}
         </div>
-      ) : categories.length === 0 ? (
+      ) : categories === null ? null : !hasCategories ? (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
           No categories are published yet.
         </div>

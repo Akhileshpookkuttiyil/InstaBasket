@@ -6,13 +6,13 @@ import {
 } from "../shared/content/defaultContent";
 
 const useContentStore = create((set) => ({
-  categories: [],
-  adminCategories: [],
+  categories: null,
+  adminCategories: null,
   homeContent: null,
-  loading: false,
-  categoriesLoading: false,
-  adminCategoriesLoading: false,
-  homeContentLoading: false,
+  loading: true,
+  categoriesLoading: true,
+  adminCategoriesLoading: true,
+  homeContentLoading: true,
   hasLoaded: false,
   categoriesError: "",
   adminCategoriesError: "",
@@ -30,7 +30,6 @@ const useContentStore = create((set) => ({
 
       set({
         categories: nextCategories,
-        categoriesLoading: false,
         categoriesError: "",
       });
 
@@ -38,12 +37,15 @@ const useContentStore = create((set) => ({
     } catch (error) {
       set({
         categories: [],
-        categoriesLoading: false,
         categoriesError:
           error?.response?.data?.message || "Failed to load categories",
       });
 
       return [];
+    } finally {
+      set({
+        categoriesLoading: false,
+      });
     }
   },
 
@@ -57,7 +59,6 @@ const useContentStore = create((set) => ({
 
       set({
         homeContent: nextHomeContent,
-        homeContentLoading: false,
         homeContentError: "",
       });
 
@@ -65,12 +66,15 @@ const useContentStore = create((set) => ({
     } catch (error) {
       set({
         homeContent: defaultHomeContent,
-        homeContentLoading: false,
         homeContentError:
           error?.response?.data?.message || "Failed to load homepage content",
       });
 
       return defaultHomeContent;
+    } finally {
+      set({
+        homeContentLoading: false,
+      });
     }
   },
 
@@ -86,7 +90,6 @@ const useContentStore = create((set) => ({
 
       set({
         adminCategories: nextCategories,
-        adminCategoriesLoading: false,
         adminCategoriesError: "",
       });
 
@@ -94,29 +97,37 @@ const useContentStore = create((set) => ({
     } catch (error) {
       set({
         adminCategories: [],
-        adminCategoriesLoading: false,
         adminCategoriesError:
           error?.response?.data?.message || "Failed to load admin categories",
       });
 
       return [];
+    } finally {
+      set({
+        adminCategoriesLoading: false,
+      });
     }
   },
 
   fetchContent: async () => {
     set({ loading: true });
 
-    const [categoriesResult, homeContentResult] = await Promise.all([
-      useContentStore.getState().fetchCategories(),
-      useContentStore.getState().fetchHomeContent(),
-    ]);
+    try {
+      const [categoriesResult, homeContentResult] = await Promise.all([
+        useContentStore.getState().fetchCategories(),
+        useContentStore.getState().fetchHomeContent(),
+      ]);
 
-    set({
-      categories: categoriesResult,
-      homeContent: homeContentResult,
-      loading: false,
-      hasLoaded: true,
-    });
+      set({
+        categories: categoriesResult,
+        homeContent: homeContentResult,
+        hasLoaded: true,
+      });
+    } finally {
+      set({
+        loading: false,
+      });
+    }
   },
 
   setCategories: (categories) =>

@@ -47,13 +47,16 @@ const App = () => {
 
   useEffect(() => {
     const init = async () => {
-      const cartItems = await fetchUser();
+      const [cartItems] = await Promise.all([
+        fetchUser(),
+        fetchProducts(),
+        fetchContent(),
+        fetchSellerStatus(),
+      ]);
+
       if (cartItems) {
         setCartItems(cartItems);
       }
-      await fetchProducts();
-      await fetchContent();
-      await fetchSellerStatus();
     };
 
     init();

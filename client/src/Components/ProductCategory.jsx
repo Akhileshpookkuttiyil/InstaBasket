@@ -17,7 +17,7 @@ const ProductCategory = () => {
       .replace(/[\s_-]+/g, "");
 
   const foundCategory = useMemo(() => 
-    categories.find((item) => {
+    (categories || []).find((item) => {
       const slug = String(item.slug || "").toLowerCase();
       return slug === categoryName;
     }),
@@ -32,7 +32,7 @@ const ProductCategory = () => {
     [products, categoryName]
   );
 
-  if (categoriesLoading) {
+  if (categoriesLoading || categories === null) {
     return (
       <div className="mt-16 flex items-center justify-center">
         <p className="text-lg font-medium text-slate-500">Loading category...</p>

@@ -15,7 +15,8 @@ const createFeatureDraft = (feature = {}) => ({
 const filePreview = (file, fallback) => (file ? URL.createObjectURL(file) : fallback);
 
 const HomepageManagement = () => {
-  const { homeContent, fetchContent } = useContentStore();
+  const { homeContent, homeContentLoading, homeContentError, fetchContent } =
+    useContentStore();
   const [saving, setSaving] = useState(false);
   const [formState, setFormState] = useState({
     heroTitle: "",
@@ -37,6 +38,10 @@ const HomepageManagement = () => {
   const effectiveContent = homeContent || defaultHomeContent;
 
   useEffect(() => {
+    if (homeContentLoading || homeContent === null) {
+      return;
+    }
+
     const nextFeatures = (effectiveContent?.features?.length
       ? effectiveContent.features
       : defaultHomeContent.features
@@ -59,7 +64,7 @@ const HomepageManagement = () => {
       addressFile: null,
       features: nextFeatures,
     }));
-  }, [effectiveContent]);
+  }, [effectiveContent, homeContent, homeContentLoading]);
 
   const previews = useMemo(
     () => ({
@@ -178,6 +183,47 @@ const HomepageManagement = () => {
       />
     </div>
   );
+
+  if (homeContentLoading || homeContent === null) {
+    return (
+      <div className="space-y-6">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <section
+            key={`homepage-section-skeleton-${index}`}
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+          >
+            <div className="h-7 w-48 animate-pulse rounded-full bg-slate-200" />
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((__, fieldIndex) => (
+                  <div
+                    key={`homepage-field-skeleton-${index}-${fieldIndex}`}
+                    className="h-12 animate-pulse rounded-xl bg-slate-100"
+                  />
+                ))}
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 2 }).map((__, previewIndex) => (
+                  <div
+                    key={`homepage-preview-skeleton-${index}-${previewIndex}`}
+                    className="h-48 animate-pulse rounded-2xl bg-slate-100"
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
+  if (homeContentError && homeContent === defaultHomeContent) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+        {homeContentError}
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submitHomeContent} className="space-y-6">

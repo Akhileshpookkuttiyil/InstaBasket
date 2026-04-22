@@ -35,7 +35,8 @@ const getEditableForm = (product) => ({
 
 const ProductsList = () => {
   const { fetchProducts } = useProductStore();
-  const { categories } = useContentStore();
+  const { categories, categoriesLoading } = useContentStore();
+  const categoryList = categories || [];
   const [products, setProducts] = useState([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -195,9 +196,10 @@ const ProductsList = () => {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="rounded-lg border border-gray-200 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary appearance-none"
+                disabled={categoriesLoading || categories === null}
               >
                 <option value="all">All Categories</option>
-                {categories.map((cat) => (
+                {categoryList.map((cat) => (
                   <option key={cat.slug} value={cat.path}>
                     {cat.name}
                   </option>
@@ -363,8 +365,9 @@ const ProductsList = () => {
                   onChange={(e) => onEditChange("category", e.target.value)}
                   className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
                   required
+                  disabled={categoriesLoading || categories === null}
                 >
-                  {categories.map((item) => (
+                  {categoryList.map((item) => (
                     <option key={item.slug} value={item.path}>
                       {item.name}
                     </option>
