@@ -7,7 +7,7 @@ const AdminRoute = () => {
 
   if (!authChecked || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f7f4]">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50/60">
         <div
           className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-primary"
           aria-label="Loading admin access"

@@ -23,13 +23,13 @@ const AdminOverview = () => {
   return (
     <div className="space-y-6">
       <Panel className="bg-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Overview
         </p>
-        <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
+        <h2 className="mt-3 text-3xl font-semibold text-gray-800">
           {user?.name || "Admin"} controls the live storefront experience.
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
           Category taxonomy, homepage visuals, and merchandised messaging now
           come from live API-backed content. This dashboard gives you a cleaner
           operating view over what is published.

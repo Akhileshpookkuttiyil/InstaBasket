@@ -1,6 +1,7 @@
 import React from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ImagePlus, LayoutDashboard, Layers3, LogOut } from "lucide-react";
+import { assets } from "../../assets/assets";
 import useAuthStore from "../../store/useAuthStore";
 import { AdminShell } from "./components/AdminSurface";
 
@@ -28,17 +29,11 @@ const AdminLayout = () => {
   const { logout, user } = useAuthStore();
 
   const sidebar = (
-    <div className="flex h-full flex-col px-4 py-6">
-      <div className="px-3 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">
-          InstaBasket
-        </p>
-        <h1 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
-          Admin
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          Clean control over categories, homepage content, and storefront assets.
-        </p>
+    <div className="flex h-full flex-col px-4 py-5">
+      <div className="px-3 pb-4">
+        <Link to="/" className="inline-flex">
+          <img src={assets.logo} alt="InstaBasket" className="w-34 md:w-38" />
+        </Link>
       </div>
 
       <nav className="space-y-1">
@@ -51,10 +46,10 @@ const AdminLayout = () => {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition ${
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                   isActive
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-primary/15 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`
               }
             >
@@ -68,12 +63,12 @@ const AdminLayout = () => {
   );
 
   const header = (
-    <div className="flex items-center justify-between px-4 py-4 md:px-8">
+    <div className="flex items-center justify-between px-4 py-3 md:px-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Content management
         </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-[-0.03em] text-slate-900">
+        <h2 className="mt-1 text-xl font-semibold text-gray-800">
           {user?.name || "Admin"} workspace
         </h2>
       </div>
@@ -84,9 +79,9 @@ const AdminLayout = () => {
             navigate("/admin/login", { replace: true });
           }
         }}
-        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+        className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
       >
-        <LogOut size={16} />
+        <LogOut size={15} />
         Logout
       </button>
     </div>
