@@ -2,6 +2,7 @@ export const defaultHomeContent = {
   heroBanner: {
     desktopImage: null,
     mobileImage: null,
+    position: "center-left",
     title: "Storefront content not configured yet",
     subtitle:
       "Upload homepage visuals and copy from the admin console to publish your storefront.",
@@ -17,6 +18,7 @@ export const defaultHomeContent = {
   bottomBanner: {
     desktopImage: null,
     mobileImage: null,
+    position: "center-right",
     title: "Fresh content starts here",
     text: "Categories, banners, and promotional assets will appear once they are published from the admin panel.",
   },

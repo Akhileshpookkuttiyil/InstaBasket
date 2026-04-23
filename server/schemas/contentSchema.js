@@ -12,6 +12,14 @@ const linkSchema = z.object({
   href: z.string().trim().min(1).max(300),
 });
 
+const positionSchema = z.enum([
+  "top-left",
+  "center-left",
+  "center",
+  "center-right",
+  "bottom-right",
+]);
+
 export const categoryPayloadSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug: z.string().trim().min(2).max(120).optional(),
@@ -44,6 +52,7 @@ export const siteContentPayloadSchema = z.object({
     mobileImage: imageSchema.optional(),
     title: z.string().trim().min(3).max(160).optional(),
     subtitle: z.string().trim().min(3).max(280).optional(),
+    position: positionSchema.optional(),
     cta: linkSchema.optional(),
     secondaryCta: linkSchema.optional(),
   }).optional(),
@@ -51,6 +60,7 @@ export const siteContentPayloadSchema = z.object({
     desktopImage: imageSchema.optional(),
     mobileImage: imageSchema.optional(),
     title: z.string().trim().min(3).max(160).optional(),
+    position: positionSchema.optional(),
     text: z.string().trim().min(3).max(400).optional(),
   }).optional(),
   illustrations: z.object({

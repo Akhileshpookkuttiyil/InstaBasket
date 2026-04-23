@@ -363,6 +363,10 @@ export const upsertHomeSiteContent = asyncHandler(async (req, res) => {
         heroBanner.subtitle ||
         existingContent?.heroBanner?.subtitle ||
         "Shop the best products at unbeatable prices, tailored just for you.",
+      position:
+        heroBanner.position ||
+        existingContent?.heroBanner?.position ||
+        "center-left",
       cta:
         heroBanner.cta ||
         existingContent?.heroBanner?.cta || {
@@ -383,6 +387,10 @@ export const upsertHomeSiteContent = asyncHandler(async (req, res) => {
         bottomBanner.title ||
         existingContent?.bottomBanner?.title ||
         "Why We Are The Best",
+      position:
+        bottomBanner.position ||
+        existingContent?.bottomBanner?.position ||
+        "center-right",
       text:
         bottomBanner.text ||
         existingContent?.bottomBanner?.text ||

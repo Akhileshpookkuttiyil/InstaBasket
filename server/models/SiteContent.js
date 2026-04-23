@@ -52,6 +52,14 @@ const featureSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const positionEnum = [
+  "top-left",
+  "center-left",
+  "center",
+  "center-right",
+  "bottom-right",
+];
+
 const siteContentSchema = new mongoose.Schema(
   {
     key: {
@@ -81,6 +89,11 @@ const siteContentSchema = new mongoose.Schema(
         required: true,
         trim: true,
       },
+      position: {
+        type: String,
+        enum: positionEnum,
+        default: "center-left",
+      },
       cta: {
         type: linkSchema,
         required: true,
@@ -103,6 +116,11 @@ const siteContentSchema = new mongoose.Schema(
         type: String,
         required: true,
         trim: true,
+      },
+      position: {
+        type: String,
+        enum: positionEnum,
+        default: "center-right",
       },
       text: {
         type: String,

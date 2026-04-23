@@ -1,11 +1,17 @@
 import React from "react";
 import useContentStore from "../store/useContentStore";
 import { defaultHomeContent } from "../shared/content/defaultContent";
+import {
+  getHomepageBlockClasses,
+  getHomepageOverlayClasses,
+} from "../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
 const BottomBanner = () => {
   const { homeContent, homeContentLoading } = useContentStore();
   const bottomBanner = homeContent?.bottomBanner || defaultHomeContent.bottomBanner;
+  const bottomPosition =
+    bottomBanner?.position || defaultHomeContent.bottomBanner.position;
   const features = homeContent?.features?.length
     ? homeContent.features
     : defaultHomeContent.features;
@@ -52,8 +58,8 @@ const BottomBanner = () => {
         }}
       />
 
-      <div className="absolute inset-0 flex flex-col items-center md:items-end md:justify-center pt-16 md:pt-0 md:pr-24">
-        <div>
+      <div className={`absolute inset-0 flex px-6 py-8 md:px-24 ${getHomepageOverlayClasses(bottomPosition)}`}>
+        <div className={`flex max-w-md flex-col ${getHomepageBlockClasses(bottomPosition)}`}>
           <h1 className="text-2xl md:text-3xl font-semibold text-primary">
             {bottomBanner?.title || defaultHomeContent.bottomBanner.title}
           </h1>
