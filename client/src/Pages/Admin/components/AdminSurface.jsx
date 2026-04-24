@@ -19,10 +19,14 @@ export const AdminShell = ({ sidebar, header, children }) => (
 export const Panel = ({ title, description, action, children, className = "" }) => (
   <section className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}>
     {(title || description || action) && (
-      <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 md:flex-row md:items-start md:justify-between md:px-5">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-4 py-4 md:px-5">
+        <div className="min-w-0 flex-1">
           {title ? <h2 className="text-base font-semibold text-gray-800">{title}</h2> : null}
-          {description ? <p className="mt-1 text-sm leading-6 text-gray-500">{description}</p> : null}
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              {description}
+            </p>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>

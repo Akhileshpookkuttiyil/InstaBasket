@@ -6,11 +6,16 @@ import {
   Eye,
   Image as ImageIcon,
   LayoutTemplate,
+  Monitor,
+  RotateCcw,
   Save,
+  Smartphone,
   Sparkles,
+  Tablet,
 } from "lucide-react";
 import apiClient from "../../shared/lib/apiClient";
 import useContentStore from "../../store/useContentStore";
+import useProductStore from "../../store/useProductStore";
 import { defaultHomeContent } from "../../shared/content/defaultContent";
 import { HOMEPAGE_TEXT_POSITION_OPTIONS } from "../../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../../shared/lib/image";
@@ -117,6 +122,8 @@ const HomepageManagement = () => {
     fetchContent,
   } = useContentStore();
 
+  const { products: allProducts, fetchProducts: fetchAllProducts } = useProductStore();
+
   const [saving, setSaving] = useState(false);
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [supportAssetsOpen, setSupportAssetsOpen] = useState(false);
@@ -136,8 +143,45 @@ const HomepageManagement = () => {
     bottomDesktopFile: null,
     bottomMobileFile: null,
     addressFile: null,
-    features: [createFeatureDraft(), createFeatureDraft(), createFeatureDraft(), createFeatureDraft()],
+    features: [
+      createFeatureDraft(),
+      createFeatureDraft(),
+      createFeatureDraft(),
+      createFeatureDraft(),
+    ],
   });
+
+  const [viewportMode, setViewportMode] = useState("web"); // web, tablet, mobile
+  const [containerWidth, setContainerWidth] = useState(0);
+  const previewContainerRef = React.useRef(null);
+
+  useEffect(() => {
+    fetchAllProducts({ limit: 4 });
+  }, []);
+
+  useEffect(() => {
+    if (!previewContainerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]) {
+        setContainerWidth(entries[0].contentRect.width);
+      }
+    });
+
+    observer.observe(previewContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const viewportConfig = {
+    web: { width: 1440, label: "Web", icon: Monitor },
+    tablet: { width: 768, label: "Tablet", icon: Tablet },
+    mobile: { width: 375, label: "Mobile", icon: Smartphone },
+  };
+
+  const currentConfig = viewportConfig[viewportMode];
+  const scale =
+    containerWidth > 0 ? Math.min(1, (containerWidth - 40) / currentConfig.width) : 1;
+
 
   const effectiveContent = homeContent || defaultHomeContent;
   const categoryList = categories || [];
@@ -174,9 +218,12 @@ const HomepageManagement = () => {
       bottomDesktopFile: null,
       bottomMobileFile: null,
       addressFile: null,
-      features: nextFeatures.length
-        ? nextFeatures
-        : [createFeatureDraft(), createFeatureDraft(), createFeatureDraft(), createFeatureDraft()],
+      features: [
+        ...nextFeatures,
+        ...Array.from({ length: Math.max(0, 4 - nextFeatures.length) }).map(() =>
+          createFeatureDraft()
+        ),
+      ].slice(0, 4),
     });
   }, [effectiveContent, homeContent, homeContentLoading]);
 
@@ -401,22 +448,45 @@ const HomepageManagement = () => {
       className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]"
     >
       <div className="space-y-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:pr-2">
-        <Panel
-          title="Homepage Editor"
-          description="Edit live homepage content and validate it in the storefront-style preview before publishing."
-          action={
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-dull disabled:opacity-60"
-            >
-              <Save size={15} />
-              {saving ? "Saving..." : "Publish"}
-            </button>
-          }
-        >
-          <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-gray-600">
-            The preview mirrors the homepage structure so admins can see layout, hierarchy, and messaging before publishing.
+        <Panel className="overflow-hidden">
+          <div className="border-b border-gray-100 bg-gray-50/50 p-5">
+            <h2 className="text-lg font-bold text-gray-800">Homepage Editor</h2>
+            <p className="mt-1.5 text-sm leading-6 text-gray-500">
+              Edit live homepage content and validate it in the storefront-style preview before publishing.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Discard all unsaved changes and reset to published version?"
+                    )
+                  ) {
+                    fetchContent();
+                  }
+                }}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+              >
+                <RotateCcw size={15} />
+                Discard
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-primary-dull disabled:opacity-60"
+              >
+                <Save size={15} />
+                {saving ? "Saving..." : "Publish"}
+              </button>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="rounded-xl border border-primary/10 bg-primary/5 px-4 py-3 text-xs leading-5 text-gray-600">
+              The preview mirrors the homepage structure so admins can see
+              layout, hierarchy, and messaging before publishing.
+            </div>
           </div>
         </Panel>
 
@@ -706,34 +776,94 @@ const HomepageManagement = () => {
 
       <Panel
         title="Live Preview"
-        description="A storefront-style mockup that updates instantly as you edit content."
+        description="Pixel-accurate storefront simulation with responsive scaling."
         className="xl:max-h-[calc(100vh-150px)] xl:overflow-hidden"
+        action={
+          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50/50 p-1">
+            {Object.entries(viewportConfig).map(([mode, config]) => {
+              const Icon = config.icon;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewportMode(mode)}
+                  title={`Preview ${config.label}`}
+                  className={`flex h-8 w-10 items-center justify-center rounded-md transition-all ${
+                    viewportMode === mode
+                      ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
+                      : "text-gray-500 hover:bg-white/50 hover:text-gray-700"
+                  }`}
+                >
+                  <Icon size={16} />
+                </button>
+              );
+            })}
+          </div>
+        }
       >
-        <div className="xl:max-h-[calc(100vh-245px)] xl:overflow-y-auto xl:pr-1">
-          <HomepageVisualPreview
-            draftContent={draftContent}
-            categories={categoryList}
-            categoriesLoading={categoriesLoading}
-            onHeroFieldChange={(field, value) => {
-              const map = {
-                title: "heroTitle",
-                subtitle: "heroSubtitle",
-                ctaLabel: "ctaLabel",
-                secondaryCtaLabel: "secondaryCtaLabel",
-              };
-              updateField(map[field], value);
-            }}
-            onBottomFieldChange={(field, value) => {
-              const map = {
-                title: "bottomTitle",
-                text: "bottomText",
-              };
-              updateField(map[field], value);
-            }}
-            onFeatureFieldChange={(index, field, value) =>
-              updateFeature(index, { [field]: value })
-            }
-          />
+        <div 
+          ref={previewContainerRef}
+          className="relative h-[600px] overflow-hidden rounded-xl border border-gray-200 bg-gray-100/30 xl:h-[calc(100vh-245px)]"
+        >
+          {/* Status Bar */}
+          <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between border-b border-gray-200 bg-white/90 px-4 py-2 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                {currentConfig.label} View ({currentConfig.width}px)
+              </span>
+            </div>
+            <span className="text-[10px] font-medium text-gray-400">
+              {Math.round(scale * 100)}% Scale
+            </span>
+          </div>
+
+          <div className="absolute inset-0 overflow-auto pt-12 pb-20">
+            <div 
+              className="flex justify-center"
+              style={{ 
+                minHeight: "100%",
+                paddingBottom: "100px" 
+              }}
+            >
+              <div
+                style={{
+                  width: currentConfig.width,
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top center",
+                  transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                className="h-fit shrink-0 bg-white shadow-2xl ring-1 ring-black/5"
+              >
+                <HomepageVisualPreview
+                  draftContent={draftContent}
+                  categories={categoryList}
+                  categoriesLoading={categoriesLoading}
+                  bestSellers={allProducts.slice(0, 4)}
+                  viewportMode={viewportMode}
+                  onHeroFieldChange={(field, value) => {
+                    const map = {
+                      title: "heroTitle",
+                      subtitle: "heroSubtitle",
+                      ctaLabel: "ctaLabel",
+                      secondaryCtaLabel: "secondaryCtaLabel",
+                    };
+                    updateField(map[field], value);
+                  }}
+                  onBottomFieldChange={(field, value) => {
+                    const map = {
+                      title: "bottomTitle",
+                      text: "bottomText",
+                    };
+                    updateField(map[field], value);
+                  }}
+                  onFeatureFieldChange={(index, field, value) =>
+                    updateFeature(index, { [field]: value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </Panel>
     </form>

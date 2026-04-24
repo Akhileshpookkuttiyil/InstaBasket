@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Edit3 } from "lucide-react";
 import { defaultHomeContent } from "../../../shared/content/defaultContent";
 import {
   getHomepageBlockClasses,
   getHomepageOverlayClasses,
 } from "../../../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../../../shared/lib/image";
+import NewsLetter from "../../../Components/NewsLetter";
+import ProductCard from "../../../Components/ProductCard";
 
 const sectionLabelClassName =
   "absolute left-3 top-3 rounded-full border border-gray-200 bg-white/95 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600";
 
 const editableClassName =
-  "rounded-lg border border-transparent px-2 py-1 transition hover:border-primary/30 hover:bg-white/70 focus:border-primary/40 focus:bg-white/80";
+  "group relative rounded-lg border border-transparent px-2 py-1 transition hover:border-primary/30 hover:bg-white/70 focus:border-primary/40 focus:bg-white/80";
 
 const InlineEditableField = ({
   value,
@@ -63,9 +66,15 @@ const InlineEditableField = ({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className={`${editableClassName} ${className}`}
+      className={`block w-full text-inherit ${editableClassName} ${className}`}
     >
-      {value || placeholder}
+      <span className={`flex items-center gap-1.5 ${
+        className.includes('text-center') || className.includes('items-center') ? 'justify-center' : 
+        className.includes('text-right') || className.includes('items-end') ? 'justify-end' : 'justify-start'
+      }`}>
+        {value || placeholder}
+        <Edit3 size={12} className="text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
+      </span>
     </button>
   );
 };
@@ -81,6 +90,8 @@ const HomepageVisualPreview = ({
   draftContent,
   categories,
   categoriesLoading,
+  bestSellers = [],
+  viewportMode = "web",
   onHeroFieldChange,
   onBottomFieldChange,
   onFeatureFieldChange,
@@ -89,14 +100,19 @@ const HomepageVisualPreview = ({
   const bottomBanner = draftContent?.bottomBanner || defaultHomeContent.bottomBanner;
   const features = Array.isArray(draftContent?.features) ? draftContent.features : [];
 
+  const isMobile = viewportMode === "mobile";
+  const isTablet = viewportMode === "tablet";
+  const isWeb = viewportMode === "web";
+  const isAtLeastTablet = isWeb || isTablet;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PreviewSection label="Hero Banner" className="bg-gray-50">
         <div className="relative">
           <img
             src={getImageUrl(heroBanner.desktopImage, "marketing")}
             alt="Hero preview"
-            className="hidden h-[360px] w-full object-cover md:block"
+            className={`${isAtLeastTablet ? "block" : "hidden"} h-[420px] w-full object-cover`}
             onError={(event) => {
               event.currentTarget.src = getImageFallback("marketing");
             }}
@@ -104,49 +120,75 @@ const HomepageVisualPreview = ({
           <img
             src={getImageUrl(heroBanner.mobileImage, "marketing")}
             alt="Hero preview mobile"
-            className="h-[420px] w-full object-cover md:hidden"
+            className={`${isMobile ? "block" : "hidden"} h-[460px] w-full object-cover`}
             onError={(event) => {
               event.currentTarget.src = getImageFallback("marketing");
             }}
           />
 
-          <div
-            className={`absolute inset-0 flex px-5 py-8 md:px-10 ${getHomepageOverlayClasses(
-              heroBanner.position
-            )}`}
-          >
-            <div className={`flex max-w-xl flex-col ${getHomepageBlockClasses(heroBanner.position)}`}>
-              <InlineEditableField
-                value={heroBanner.title}
-                onChange={(nextValue) => onHeroFieldChange("title", nextValue)}
-                placeholder="Hero title"
-                className="text-3xl font-bold leading-tight text-gray-800 md:text-5xl"
-                inputClassName="text-xl font-semibold text-gray-800 md:text-2xl"
-              />
-              <InlineEditableField
-                value={heroBanner.subtitle}
-                onChange={(nextValue) => onHeroFieldChange("subtitle", nextValue)}
-                placeholder="Hero subtitle"
-                multiline
-                className="mt-4 max-w-md text-base leading-7 text-gray-600 md:text-xl"
-                inputClassName="text-sm leading-6 text-gray-700"
-              />
+          <div className="absolute inset-0">
+            <div
+              className={`mx-auto flex h-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 ${getHomepageOverlayClasses(
+                heroBanner.position
+              )}`}
+            >
+              <div
+                className={`flex w-full max-w-2xl flex-col ${getHomepageBlockClasses(
+                  heroBanner.position
+                )}`}
+              >
+                <div className="w-full">
+                  <InlineEditableField
+                    value={heroBanner.title}
+                    onChange={(nextValue) => onHeroFieldChange("title", nextValue)}
+                    placeholder="Hero title"
+                    className={`${
+                      isWeb ? "text-6xl" : isTablet ? "text-5xl" : "text-4xl"
+                    } font-bold leading-tight text-gray-800 ${getHomepageBlockClasses(
+                      heroBanner.position
+                    )}`}
+                    inputClassName={`${
+                      isWeb ? "text-3xl" : "text-2xl"
+                    } font-semibold text-gray-800`}
+                  />
+                </div>
+                <div className="mt-3 w-full">
+                  <InlineEditableField
+                    value={heroBanner.subtitle}
+                    onChange={(nextValue) => onHeroFieldChange("subtitle", nextValue)}
+                    placeholder="Hero subtitle"
+                    multiline
+                    className={`max-w-md ${
+                      isWeb ? "text-2xl" : isTablet ? "text-xl" : "text-lg"
+                    } leading-7 text-gray-600 ${getHomepageBlockClasses(
+                      heroBanner.position
+                    )}`}
+                    inputClassName="text-sm leading-6 text-gray-700"
+                  />
+                </div>
 
-              <div className="mt-6 flex flex-col gap-3 md:flex-row">
-                <InlineEditableField
-                  value={heroBanner.cta?.label}
-                  onChange={(nextValue) => onHeroFieldChange("ctaLabel", nextValue)}
-                  placeholder="Primary CTA"
-                  className="inline-flex items-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-md"
-                  inputClassName="bg-white text-sm text-gray-800"
-                />
-                <InlineEditableField
-                  value={heroBanner.secondaryCta?.label}
-                  onChange={(nextValue) => onHeroFieldChange("secondaryCtaLabel", nextValue)}
-                  placeholder="Secondary CTA"
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white/80 px-5 py-3 text-sm font-medium text-gray-800 shadow-sm"
-                  inputClassName="bg-white text-sm text-gray-800"
-                />
+                <div
+                  className={`mt-8 flex ${
+                    isAtLeastTablet ? "flex-row" : "flex-col"
+                  } gap-4`}
+                >
+                  <InlineEditableField
+                    value={heroBanner.cta?.label}
+                    onChange={(nextValue) => onHeroFieldChange("ctaLabel", nextValue)}
+                    placeholder="Primary CTA"
+                    className="inline-flex items-center rounded bg-primary px-6 py-3 text-sm font-medium text-white shadow-md"
+                    inputClassName="bg-white text-sm text-gray-800"
+                  />
+                  <InlineEditableField
+                    value={heroBanner.secondaryCta?.label}
+                    onChange={(nextValue) =>
+                      onHeroFieldChange("secondaryCtaLabel", nextValue)
+                    }
+                    placeholder="Secondary CTA"
+                    className="inline-flex items-center rounded border border-gray-300 bg-white/80 px-6 py-3 text-sm font-medium text-gray-800 shadow-sm"
+                    inputClassName="bg-white text-sm text-gray-800"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -154,38 +196,38 @@ const HomepageVisualPreview = ({
       </PreviewSection>
 
       <PreviewSection label="Categories" className="p-5">
-        <p className="text-2xl font-medium text-gray-800">Categories</p>
+        <p className={`font-medium ${isAtLeastTablet ? "text-3xl" : "text-2xl"}`}>Categories</p>
         {categoriesLoading ? (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, index) => (
+          <div className={`mt-6 grid gap-6 ${isWeb ? "grid-cols-7" : isTablet ? "grid-cols-4" : "grid-cols-2"}`}>
+            {Array.from({ length: 7 }).map((_, index) => (
               <div
                 key={`category-preview-skeleton-${index}`}
-                className="h-32 animate-pulse rounded-2xl bg-gray-100"
+                className="h-36 animate-pulse rounded-2xl bg-slate-100"
               />
             ))}
           </div>
         ) : categories.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-            Published categories will appear here.
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            No categories are published yet.
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className={`mt-6 grid gap-6 ${isWeb ? "grid-cols-7" : isTablet ? "grid-cols-4" : "grid-cols-2"}`}>
             {categories.map((category) => (
               <div
                 key={category.slug}
-                className="rounded-lg px-3 py-5 shadow-sm"
+                className="group rounded-lg px-3 py-5 shadow-md transition-transform duration-200 hover:shadow-lg"
                 style={{ backgroundColor: category.bgColor || "#F5F5F5" }}
               >
                 <div className="flex flex-col items-center justify-center">
                   <img
                     src={getImageUrl(category.image, "category")}
                     alt={category.name}
-                    className="max-w-[90px]"
+                    className="max-w-[100px] transition-transform duration-200 group-hover:scale-105"
                     onError={(event) => {
                       event.currentTarget.src = getImageFallback("category");
                     }}
                   />
-                  <p className="mt-2 text-center text-sm font-medium text-gray-800">
+                  <p className="mt-2 text-center text-sm font-medium">
                     {category.name}
                   </p>
                 </div>
@@ -198,24 +240,30 @@ const HomepageVisualPreview = ({
       <PreviewSection label="Best Seller Products" className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-medium text-gray-800">Best Sellers</p>
+            <p className={`font-medium ${isAtLeastTablet ? "text-3xl" : "text-2xl"}`}>Best Sellers</p>
             <p className="mt-1 text-sm text-gray-500">
               Product cards are driven by your catalog and appear here on the live storefront.
             </p>
           </div>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={`best-seller-preview-${index}`}
-              className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-            >
-              <div className="h-36 rounded-lg bg-gray-100" />
-              <div className="mt-4 h-4 w-3/4 rounded-full bg-gray-100" />
-              <div className="mt-2 h-3 w-1/2 rounded-full bg-gray-100" />
-              <div className="mt-5 h-9 rounded-md bg-primary/15" />
-            </div>
-          ))}
+        <div className={`mt-6 grid gap-6 ${isWeb ? "grid-cols-4" : isAtLeastTablet ? "grid-cols-2" : "grid-cols-1"}`}>
+          {bestSellers.length > 0
+            ? bestSellers.map((product, index) => (
+                <div key={`best-seller-real-${index}`} className="pointer-events-none select-none">
+                  <ProductCard product={product} />
+                </div>
+              ))
+            : Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={`best-seller-preview-${index}`}
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="h-36 rounded-lg bg-gray-100" />
+                  <div className="mt-4 h-4 w-3/4 rounded-full bg-gray-100" />
+                  <div className="mt-2 h-3 w-1/2 rounded-full bg-gray-100" />
+                  <div className="mt-5 h-9 rounded-md bg-primary/15" />
+                </div>
+              ))}
         </div>
       </PreviewSection>
 
@@ -224,7 +272,7 @@ const HomepageVisualPreview = ({
           <img
             src={getImageUrl(bottomBanner.desktopImage, "marketing")}
             alt="Bottom banner preview"
-            className="hidden h-[320px] w-full object-cover md:block"
+            className={`${isAtLeastTablet ? "block" : "hidden"} min-h-[400px] w-full object-cover`}
             onError={(event) => {
               event.currentTarget.src = getImageFallback("marketing");
             }}
@@ -232,63 +280,101 @@ const HomepageVisualPreview = ({
           <img
             src={getImageUrl(bottomBanner.mobileImage, "marketing")}
             alt="Bottom banner preview mobile"
-            className="h-[420px] w-full object-cover md:hidden"
+            className={`${isMobile ? "block" : "hidden"} min-h-[460px] w-full object-cover`}
             onError={(event) => {
               event.currentTarget.src = getImageFallback("marketing");
             }}
           />
 
-          <div
-            className={`absolute inset-0 flex px-5 py-8 md:px-12 ${getHomepageOverlayClasses(
-              bottomBanner.position
-            )}`}
-          >
-            <div className={`flex max-w-md flex-col ${getHomepageBlockClasses(bottomBanner.position)}`}>
-              <InlineEditableField
-                value={bottomBanner.title}
-                onChange={(nextValue) => onBottomFieldChange("title", nextValue)}
-                placeholder="Bottom banner title"
-                className="text-2xl font-semibold text-primary md:text-3xl"
-                inputClassName="text-lg font-semibold text-gray-800"
-              />
+          <div className="absolute inset-0">
+            <div
+              className={`mx-auto flex h-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8 ${getHomepageOverlayClasses(
+                bottomBanner.position
+              )}`}
+            >
+              <div
+                className={`flex w-full max-w-md flex-col ${getHomepageBlockClasses(
+                  bottomBanner.position
+                )}`}
+              >
+                <div className="w-full">
+                  <InlineEditableField
+                    value={bottomBanner.title}
+                    onChange={(nextValue) => onBottomFieldChange("title", nextValue)}
+                    placeholder="Bottom banner title"
+                    className={`${
+                      isAtLeastTablet ? "text-3xl" : "text-2xl"
+                    } font-semibold text-primary ${getHomepageBlockClasses(
+                      bottomBanner.position
+                    )}`}
+                    inputClassName="text-lg font-semibold text-gray-800"
+                  />
+                </div>
 
-              <div className="mt-4 space-y-3">
-                {features.map((feature, index) => (
-                  <div
-                    key={`preview-feature-${index}`}
-                    className="flex items-start gap-3 rounded-xl border border-transparent bg-white/50 p-2"
-                  >
-                    <img
-                      src={getImageUrl(feature.icon, "marketing")}
-                      alt={feature.title || `Feature ${index + 1}`}
-                      className="h-10 w-10 rounded-xl object-cover"
-                      onError={(event) => {
-                        event.currentTarget.src = getImageFallback("marketing");
-                      }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <InlineEditableField
-                        value={feature.title}
-                        onChange={(nextValue) =>
-                          onFeatureFieldChange(index, "title", nextValue)
-                        }
-                        placeholder={`Feature ${index + 1} title`}
-                        className="w-full text-left text-base font-semibold text-gray-800"
-                        inputClassName="text-sm font-medium text-gray-800"
-                      />
-                      <InlineEditableField
-                        value={feature.description}
-                        onChange={(nextValue) =>
-                          onFeatureFieldChange(index, "description", nextValue)
-                        }
-                        placeholder="Feature description"
-                        multiline
-                        className="mt-1 w-full text-left text-sm leading-6 text-gray-600"
-                        inputClassName="text-sm leading-6 text-gray-700"
-                      />
+                {features.map((feature, index) => {
+                  const isCentered = bottomBanner.position === "center";
+                  const isRightAligned = bottomBanner.position.includes("right");
+                  return (
+                    <div
+                      key={`preview-feature-${index}`}
+                      className={`mt-3 flex transition-all duration-300 hover:scale-105 ${
+                        isCentered
+                          ? "flex-col items-center text-center"
+                          : `flex-row items-center gap-4 ${getHomepageBlockClasses(
+                              bottomBanner.position
+                            )}`
+                      }`}
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+                        <img
+                          src={getImageUrl(feature.icon, "marketing")}
+                          alt={feature.title || `Feature ${index + 1}`}
+                          className="max-h-full max-w-full object-contain"
+                          onError={(event) => {
+                            event.currentTarget.src = getImageFallback("marketing");
+                          }}
+                        />
+                      </div>
+                      <div
+                        className={`min-w-0 ${
+                          isCentered ? "mt-3 max-w-xs" : "flex-1"
+                        }`}
+                      >
+                        <InlineEditableField
+                          value={feature.title}
+                          onChange={(nextValue) =>
+                            onFeatureFieldChange(index, "title", nextValue)
+                          }
+                          placeholder={`Feature ${index + 1} title`}
+                          className={`w-full font-bold text-gray-800 ${
+                            isCentered || isRightAligned
+                              ? isCentered
+                                ? "text-center"
+                                : "text-right"
+                              : "text-left"
+                          }`}
+                          inputClassName="text-sm font-medium text-gray-800"
+                        />
+                        <InlineEditableField
+                          value={feature.description}
+                          onChange={(nextValue) =>
+                            onFeatureFieldChange(index, "description", nextValue)
+                          }
+                          placeholder="Feature description"
+                          multiline
+                          className={`mt-1 w-full text-xs text-gray-500/80 sm:text-sm ${
+                            isCentered || isRightAligned
+                              ? isCentered
+                                ? "text-center"
+                                : "text-right"
+                              : "text-left"
+                          }`}
+                          inputClassName="text-sm leading-6 text-gray-700"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -296,16 +382,7 @@ const HomepageVisualPreview = ({
       </PreviewSection>
 
       <PreviewSection label="Newsletter" className="p-5">
-        <div className="rounded-2xl bg-primary/10 px-5 py-6">
-          <p className="text-xl font-semibold text-gray-800">Subscribe to our newsletter</p>
-          <p className="mt-2 text-sm text-gray-600">
-            This section stays on the homepage and uses the shared storefront styling.
-          </p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <div className="h-11 flex-1 rounded-md border border-gray-300 bg-white" />
-            <div className="h-11 w-full rounded-md bg-primary sm:w-40" />
-          </div>
-        </div>
+        <NewsLetter previewMode className="mt-0 pb-0" />
       </PreviewSection>
     </div>
   );
