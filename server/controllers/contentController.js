@@ -264,6 +264,9 @@ export const upsertHomeSiteContent = asyncHandler(async (req, res) => {
       bottomBanner: parseJsonField(req.body.bottomBanner, {}),
       features: parseJsonField(req.body.features, []),
       illustrations: parseJsonField(req.body.illustrations, {}),
+      mobile: parseJsonField(req.body.mobile, undefined),
+      tablet: parseJsonField(req.body.tablet, undefined),
+      desktop: parseJsonField(req.body.desktop, undefined),
     },
     res
   );
@@ -275,6 +278,21 @@ export const upsertHomeSiteContent = asyncHandler(async (req, res) => {
   const features = parsedPayload.features || [];
   const illustrations = parsedPayload.illustrations || {};
   const files = req.files || {};
+  const buildBreakpointPayload = (breakpoint) => ({
+    heroBanner: {
+      title: breakpoint?.heroBanner?.title || heroBanner.title,
+      subtitle: breakpoint?.heroBanner?.subtitle || heroBanner.subtitle,
+      position: breakpoint?.heroBanner?.position || heroBanner.position,
+      cta: breakpoint?.heroBanner?.cta || heroBanner.cta,
+      secondaryCta:
+        breakpoint?.heroBanner?.secondaryCta || heroBanner.secondaryCta,
+    },
+    bottomBanner: {
+      title: breakpoint?.bottomBanner?.title || bottomBanner.title,
+      position: breakpoint?.bottomBanner?.position || bottomBanner.position,
+      text: breakpoint?.bottomBanner?.text || bottomBanner.text,
+    },
+  });
 
   const previousHeroDesktopPublicId = existingContent?.heroBanner?.desktopImage?.publicId;
   const previousHeroMobilePublicId = existingContent?.heroBanner?.mobileImage?.publicId;
@@ -403,6 +421,20 @@ export const upsertHomeSiteContent = asyncHandler(async (req, res) => {
       address:
         addressIllustration || existingContent?.illustrations?.address || null,
     },
+    // Store independent breakpoint overrides while preserving legacy root
+    // fields as the desktop fallback for old frontend/admin consumers.
+    mobile:
+      parsedPayload.mobile ||
+      existingContent?.mobile ||
+      buildBreakpointPayload(parsedPayload.desktop || {}),
+    tablet:
+      parsedPayload.tablet ||
+      existingContent?.tablet ||
+      buildBreakpointPayload(parsedPayload.desktop || {}),
+    desktop:
+      parsedPayload.desktop ||
+      existingContent?.desktop ||
+      buildBreakpointPayload(parsedPayload.desktop || {}),
   };
 
   const content = await SiteContent.findOneAndUpdate(

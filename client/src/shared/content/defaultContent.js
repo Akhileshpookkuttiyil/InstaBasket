@@ -26,6 +26,11 @@ export const defaultHomeContent = {
   illustrations: {
     address: null,
   },
+  // Optional breakpoint overrides. Empty by default so legacy root content
+  // remains the desktop fallback until an admin customizes each viewport.
+  mobile: {},
+  tablet: {},
+  desktop: {},
 };
 
 const toDisplayPath = (category = {}) => {

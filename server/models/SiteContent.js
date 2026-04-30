@@ -60,6 +60,64 @@ const positionEnum = [
   "bottom-right",
 ];
 
+const responsiveHeroBannerSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      trim: true,
+    },
+    subtitle: {
+      type: String,
+      trim: true,
+    },
+    position: {
+      type: String,
+      enum: positionEnum,
+    },
+    cta: {
+      type: linkSchema,
+      default: null,
+    },
+    secondaryCta: {
+      type: linkSchema,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
+const responsiveBottomBannerSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      trim: true,
+    },
+    position: {
+      type: String,
+      enum: positionEnum,
+    },
+    text: {
+      type: String,
+      trim: true,
+    },
+  },
+  { _id: false }
+);
+
+const breakpointContentSchema = new mongoose.Schema(
+  {
+    heroBanner: {
+      type: responsiveHeroBannerSchema,
+      default: null,
+    },
+    bottomBanner: {
+      type: responsiveBottomBannerSchema,
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const siteContentSchema = new mongoose.Schema(
   {
     key: {
@@ -137,6 +195,20 @@ const siteContentSchema = new mongoose.Schema(
         type: cloudinaryImageSchema,
         default: null,
       },
+    },
+    // Optional breakpoint-specific overrides. Root banners stay as the
+    // desktop/backward-compatible fallback for existing storefront data.
+    mobile: {
+      type: breakpointContentSchema,
+      default: null,
+    },
+    tablet: {
+      type: breakpointContentSchema,
+      default: null,
+    },
+    desktop: {
+      type: breakpointContentSchema,
+      default: null,
     },
   },
   {

@@ -17,7 +17,11 @@ import apiClient from "../../shared/lib/apiClient";
 import useContentStore from "../../store/useContentStore";
 import useProductStore from "../../store/useProductStore";
 import { defaultHomeContent } from "../../shared/content/defaultContent";
-import { HOMEPAGE_TEXT_POSITION_OPTIONS } from "../../shared/content/homepageLayout";
+import {
+  getHomepageBreakpointContent,
+  HOMEPAGE_BREAKPOINTS,
+  HOMEPAGE_TEXT_POSITION_OPTIONS,
+} from "../../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../../shared/lib/image";
 import { ErrorState, Panel } from "./components/AdminSurface";
 import HomepageVisualPreview from "./components/HomepageVisualPreview";
@@ -36,6 +40,49 @@ const textAreaClassName = `${inputClassName} resize-none`;
 
 const fileInputClassName =
   "mt-2 block w-full text-sm text-gray-500 file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white";
+
+const createBreakpointDraft = (content, breakpoint) => {
+  const breakpointContent = getHomepageBreakpointContent(content, breakpoint);
+  return {
+    heroTitle: breakpointContent?.heroBanner?.title || "",
+    heroSubtitle: breakpointContent?.heroBanner?.subtitle || "",
+    heroPosition:
+      breakpointContent?.heroBanner?.position ||
+      defaultHomeContent.heroBanner.position,
+    ctaLabel: breakpointContent?.heroBanner?.cta?.label || "",
+    ctaHref: breakpointContent?.heroBanner?.cta?.href || "",
+    secondaryCtaLabel:
+      breakpointContent?.heroBanner?.secondaryCta?.label || "",
+    secondaryCtaHref:
+      breakpointContent?.heroBanner?.secondaryCta?.href || "",
+    bottomTitle: breakpointContent?.bottomBanner?.title || "",
+    bottomText: breakpointContent?.bottomBanner?.text || "",
+    bottomPosition:
+      breakpointContent?.bottomBanner?.position ||
+      defaultHomeContent.bottomBanner.position,
+  };
+};
+
+const createBreakpointPayload = (draft = {}) => ({
+  heroBanner: {
+    title: draft.heroTitle,
+    subtitle: draft.heroSubtitle,
+    position: draft.heroPosition,
+    cta: {
+      label: draft.ctaLabel,
+      href: draft.ctaHref,
+    },
+    secondaryCta: {
+      label: draft.secondaryCtaLabel,
+      href: draft.secondaryCtaHref,
+    },
+  },
+  bottomBanner: {
+    title: draft.bottomTitle,
+    text: draft.bottomText,
+    position: draft.bottomPosition,
+  },
+});
 
 const PreviewImage = ({ label, src }) => (
   <div>
@@ -128,16 +175,13 @@ const HomepageManagement = () => {
   const [featuresOpen, setFeaturesOpen] = useState(false);
   const [supportAssetsOpen, setSupportAssetsOpen] = useState(false);
   const [formState, setFormState] = useState({
-    heroTitle: "",
-    heroSubtitle: "",
-    heroPosition: "center-left",
-    ctaLabel: "",
-    ctaHref: "",
-    secondaryCtaLabel: "",
-    secondaryCtaHref: "",
-    bottomTitle: "",
-    bottomText: "",
-    bottomPosition: "center-right",
+    breakpoints: HOMEPAGE_BREAKPOINTS.reduce(
+      (drafts, breakpoint) => ({
+        ...drafts,
+        [breakpoint]: createBreakpointDraft(defaultHomeContent, breakpoint),
+      }),
+      {}
+    ),
     heroDesktopFile: null,
     heroMobileFile: null,
     bottomDesktopFile: null,
@@ -152,25 +196,14 @@ const HomepageManagement = () => {
   });
 
   const [viewportMode, setViewportMode] = useState("web"); // web, tablet, mobile
-  const [containerWidth, setContainerWidth] = useState(0);
-  const previewContainerRef = React.useRef(null);
-
+  const activeBreakpoint = viewportMode === "web" ? "desktop" : viewportMode;
+  const activeDraft =
+    formState.breakpoints?.[activeBreakpoint] ||
+    formState.breakpoints?.desktop ||
+    createBreakpointDraft(defaultHomeContent, activeBreakpoint);
   useEffect(() => {
     fetchAllProducts({ limit: 4 });
-  }, []);
-
-  useEffect(() => {
-    if (!previewContainerRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      if (entries[0]) {
-        setContainerWidth(entries[0].contentRect.width);
-      }
-    });
-
-    observer.observe(previewContainerRef.current);
-    return () => observer.disconnect();
-  }, []);
+  }, [fetchAllProducts]);
 
   const viewportConfig = {
     web: { width: 1440, label: "Web", icon: Monitor },
@@ -179,9 +212,6 @@ const HomepageManagement = () => {
   };
 
   const currentConfig = viewportConfig[viewportMode];
-  const scale =
-    containerWidth > 0 ? Math.min(1, (containerWidth - 40) / currentConfig.width) : 1;
-
 
   const effectiveContent = homeContent || defaultHomeContent;
   const categoryList = categories || [];
@@ -197,22 +227,15 @@ const HomepageManagement = () => {
     ).map((feature) => createFeatureDraft(feature));
 
     setFormState({
-      heroTitle: effectiveContent?.heroBanner?.title || "",
-      heroSubtitle: effectiveContent?.heroBanner?.subtitle || "",
-      heroPosition:
-        effectiveContent?.heroBanner?.position ||
-        defaultHomeContent.heroBanner.position,
-      ctaLabel: effectiveContent?.heroBanner?.cta?.label || "",
-      ctaHref: effectiveContent?.heroBanner?.cta?.href || "",
-      secondaryCtaLabel:
-        effectiveContent?.heroBanner?.secondaryCta?.label || "",
-      secondaryCtaHref:
-        effectiveContent?.heroBanner?.secondaryCta?.href || "",
-      bottomTitle: effectiveContent?.bottomBanner?.title || "",
-      bottomText: effectiveContent?.bottomBanner?.text || "",
-      bottomPosition:
-        effectiveContent?.bottomBanner?.position ||
-        defaultHomeContent.bottomBanner.position,
+      // Each breakpoint has its own editable banner copy/alignment. Missing
+      // values are merged from the root desktop content for old records.
+      breakpoints: HOMEPAGE_BREAKPOINTS.reduce(
+        (drafts, breakpoint) => ({
+          ...drafts,
+          [breakpoint]: createBreakpointDraft(effectiveContent, breakpoint),
+        }),
+        {}
+      ),
       heroDesktopFile: null,
       heroMobileFile: null,
       bottomDesktopFile: null,
@@ -274,30 +297,30 @@ const HomepageManagement = () => {
     [previews]
   );
 
-  const draftContent = useMemo(
-    () => ({
+  const draftContent = useMemo(() => {
+    const breakpointPayloads = HOMEPAGE_BREAKPOINTS.reduce(
+      (payloads, breakpoint) => ({
+        ...payloads,
+        [breakpoint]: createBreakpointPayload(
+          formState.breakpoints?.[breakpoint] || formState.breakpoints?.desktop
+        ),
+      }),
+      {}
+    );
+    const desktopDraft = breakpointPayloads.desktop;
+
+    return {
       heroBanner: {
         desktopImage: previews.heroDesktop,
         mobileImage: previews.heroMobile,
-        position: formState.heroPosition,
-        title: formState.heroTitle,
-        subtitle: formState.heroSubtitle,
-        cta: {
-          label: formState.ctaLabel,
-          href: formState.ctaHref,
-        },
-        secondaryCta: {
-          label: formState.secondaryCtaLabel,
-          href: formState.secondaryCtaHref,
-        },
+        ...desktopDraft.heroBanner,
       },
       bottomBanner: {
         desktopImage: previews.bottomDesktop,
         mobileImage: previews.bottomMobile,
-        position: formState.bottomPosition,
-        title: formState.bottomTitle,
-        text: formState.bottomText,
+        ...desktopDraft.bottomBanner,
       },
+      ...breakpointPayloads,
       features: formState.features.map((feature, index) => ({
         title: feature.title,
         description: feature.description,
@@ -306,25 +329,24 @@ const HomepageManagement = () => {
       illustrations: {
         address: previews.address,
       },
-    }),
-    [
-      formState.bottomPosition,
-      formState.bottomText,
-      formState.bottomTitle,
-      formState.ctaHref,
-      formState.ctaLabel,
-      formState.features,
-      formState.heroPosition,
-      formState.heroSubtitle,
-      formState.heroTitle,
-      formState.secondaryCtaHref,
-      formState.secondaryCtaLabel,
-      previews,
-    ]
-  );
+    };
+  }, [formState.breakpoints, formState.features, previews]);
 
   const updateField = (field, value) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateBreakpointField = (field, value) => {
+    setFormState((prev) => ({
+      ...prev,
+      breakpoints: {
+        ...prev.breakpoints,
+        [activeBreakpoint]: {
+          ...(prev.breakpoints?.[activeBreakpoint] || {}),
+          [field]: value,
+        },
+      },
+    }));
   };
 
   const updateFeature = (index, patch) => {
@@ -339,31 +361,33 @@ const HomepageManagement = () => {
   const submitHomeContent = async (event) => {
     event.preventDefault();
 
+    const breakpointPayloads = HOMEPAGE_BREAKPOINTS.reduce(
+      (payloads, breakpoint) => ({
+        ...payloads,
+        [breakpoint]: createBreakpointPayload(
+          formState.breakpoints?.[breakpoint] || formState.breakpoints?.desktop
+        ),
+      }),
+      {}
+    );
+    const desktopDraft = breakpointPayloads.desktop;
+
     const payload = new FormData();
     payload.append(
       "heroBanner",
       JSON.stringify({
-        title: formState.heroTitle,
-        subtitle: formState.heroSubtitle,
-        position: formState.heroPosition,
-        cta: {
-          label: formState.ctaLabel,
-          href: formState.ctaHref,
-        },
-        secondaryCta: {
-          label: formState.secondaryCtaLabel,
-          href: formState.secondaryCtaHref,
-        },
+        ...desktopDraft.heroBanner,
       })
     );
     payload.append(
       "bottomBanner",
       JSON.stringify({
-        title: formState.bottomTitle,
-        text: formState.bottomText,
-        position: formState.bottomPosition,
+        ...desktopDraft.bottomBanner,
       })
     );
+    HOMEPAGE_BREAKPOINTS.forEach((breakpoint) => {
+      payload.append(breakpoint, JSON.stringify(breakpointPayloads[breakpoint]));
+    });
     payload.append("illustrations", JSON.stringify({}));
     payload.append(
       "features",
@@ -487,6 +511,31 @@ const HomepageManagement = () => {
               The preview mirrors the homepage structure so admins can see
               layout, hierarchy, and messaging before publishing.
             </div>
+            {/* Breakpoint tabs scope banner edits so mobile/tablet/desktop no longer overwrite each other. */}
+            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-gray-200 bg-gray-50 p-1">
+              {[
+                { key: "mobile", label: "Mobile", icon: Smartphone },
+                { key: "tablet", label: "Tablet", icon: Tablet },
+                { key: "desktop", label: "Desktop", icon: Monitor },
+              ].map(({ key, label, icon }) => {
+                const BreakpointIcon = icon;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setViewportMode(key === "desktop" ? "web" : key)}
+                    className={`inline-flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                      activeBreakpoint === key
+                        ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
+                        : "text-gray-500 hover:bg-white/70 hover:text-gray-700"
+                    }`}
+                  >
+                    <BreakpointIcon size={14} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Panel>
 
@@ -499,15 +548,19 @@ const HomepageManagement = () => {
           <div className="mt-5 space-y-4">
             <PositionSelector
               label="Text position"
-              value={formState.heroPosition}
-              onChange={(nextValue) => updateField("heroPosition", nextValue)}
+              value={activeDraft.heroPosition}
+              onChange={(nextValue) =>
+                updateBreakpointField("heroPosition", nextValue)
+              }
             />
 
             <div>
               <label className="text-sm font-medium text-gray-700">Title</label>
               <input
-                value={formState.heroTitle}
-                onChange={(event) => updateField("heroTitle", event.target.value)}
+                value={activeDraft.heroTitle}
+                onChange={(event) =>
+                  updateBreakpointField("heroTitle", event.target.value)
+                }
                 className={inputClassName}
               />
             </div>
@@ -516,8 +569,10 @@ const HomepageManagement = () => {
               <label className="text-sm font-medium text-gray-700">Subtitle</label>
               <textarea
                 rows={4}
-                value={formState.heroSubtitle}
-                onChange={(event) => updateField("heroSubtitle", event.target.value)}
+                value={activeDraft.heroSubtitle}
+                onChange={(event) =>
+                  updateBreakpointField("heroSubtitle", event.target.value)
+                }
                 className={textAreaClassName}
               />
             </div>
@@ -526,25 +581,29 @@ const HomepageManagement = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Primary CTA</label>
                 <input
-                  value={formState.ctaLabel}
-                  onChange={(event) => updateField("ctaLabel", event.target.value)}
+                  value={activeDraft.ctaLabel}
+                  onChange={(event) =>
+                    updateBreakpointField("ctaLabel", event.target.value)
+                  }
                   className={inputClassName}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Primary Link</label>
                 <input
-                  value={formState.ctaHref}
-                  onChange={(event) => updateField("ctaHref", event.target.value)}
+                  value={activeDraft.ctaHref}
+                  onChange={(event) =>
+                    updateBreakpointField("ctaHref", event.target.value)
+                  }
                   className={inputClassName}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Secondary CTA</label>
                 <input
-                  value={formState.secondaryCtaLabel}
+                  value={activeDraft.secondaryCtaLabel}
                   onChange={(event) =>
-                    updateField("secondaryCtaLabel", event.target.value)
+                    updateBreakpointField("secondaryCtaLabel", event.target.value)
                   }
                   className={inputClassName}
                 />
@@ -552,9 +611,9 @@ const HomepageManagement = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Secondary Link</label>
                 <input
-                  value={formState.secondaryCtaHref}
+                  value={activeDraft.secondaryCtaHref}
                   onChange={(event) =>
-                    updateField("secondaryCtaHref", event.target.value)
+                    updateBreakpointField("secondaryCtaHref", event.target.value)
                   }
                   className={inputClassName}
                 />
@@ -603,15 +662,19 @@ const HomepageManagement = () => {
           <div className="mt-5 space-y-4">
             <PositionSelector
               label="Text position"
-              value={formState.bottomPosition}
-              onChange={(nextValue) => updateField("bottomPosition", nextValue)}
+              value={activeDraft.bottomPosition}
+              onChange={(nextValue) =>
+                updateBreakpointField("bottomPosition", nextValue)
+              }
             />
 
             <div>
               <label className="text-sm font-medium text-gray-700">Title</label>
               <input
-                value={formState.bottomTitle}
-                onChange={(event) => updateField("bottomTitle", event.target.value)}
+                value={activeDraft.bottomTitle}
+                onChange={(event) =>
+                  updateBreakpointField("bottomTitle", event.target.value)
+                }
                 className={inputClassName}
               />
             </div>
@@ -622,8 +685,10 @@ const HomepageManagement = () => {
               </label>
               <textarea
                 rows={3}
-                value={formState.bottomText}
-                onChange={(event) => updateField("bottomText", event.target.value)}
+                value={activeDraft.bottomText}
+                onChange={(event) =>
+                  updateBreakpointField("bottomText", event.target.value)
+                }
                 className={textAreaClassName}
               />
               <p className="mt-2 text-xs text-gray-500">
@@ -802,7 +867,6 @@ const HomepageManagement = () => {
         }
       >
         <div 
-          ref={previewContainerRef}
           className="relative h-[600px] overflow-hidden rounded-xl border border-gray-200 bg-gray-100/30 xl:h-[calc(100vh-245px)]"
         >
           {/* Status Bar */}
@@ -813,12 +877,9 @@ const HomepageManagement = () => {
                 {currentConfig.label} View ({currentConfig.width}px)
               </span>
             </div>
-            <span className="text-[10px] font-medium text-gray-400">
-              {Math.round(scale * 100)}% Scale
-            </span>
           </div>
 
-          <div className="absolute inset-0 overflow-auto pt-12 pb-20">
+          <div className="absolute inset-0 overflow-auto px-4 pt-12 pb-20">
             <div 
               className="flex justify-center"
               style={{ 
@@ -828,10 +889,11 @@ const HomepageManagement = () => {
             >
               <div
                 style={{
-                  width: currentConfig.width,
-                  transform: `scale(${scale})`,
-                  transformOrigin: "top center",
-                  transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  // Keep preview readable without transform zoom: desktop fills
+                  // the pane, while tablet/mobile keep their real viewport width
+                  // unless the admin panel is narrower.
+                  width: viewportMode === "web" ? "100%" : currentConfig.width,
+                  maxWidth: "100%",
                 }}
                 className="h-fit shrink-0 bg-white shadow-2xl ring-1 ring-black/5"
               >
@@ -848,14 +910,14 @@ const HomepageManagement = () => {
                       ctaLabel: "ctaLabel",
                       secondaryCtaLabel: "secondaryCtaLabel",
                     };
-                    updateField(map[field], value);
+                    updateBreakpointField(map[field], value);
                   }}
                   onBottomFieldChange={(field, value) => {
                     const map = {
                       title: "bottomTitle",
                       text: "bottomText",
                     };
-                    updateField(map[field], value);
+                    updateBreakpointField(map[field], value);
                   }}
                   onFeatureFieldChange={(index, field, value) =>
                     updateFeature(index, { [field]: value })

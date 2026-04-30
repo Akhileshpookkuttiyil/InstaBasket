@@ -3,6 +3,7 @@ import { Edit3 } from "lucide-react";
 import { defaultHomeContent } from "../../../shared/content/defaultContent";
 import {
   getHomepageBlockClasses,
+  getHomepageBreakpointContent,
   getHomepageOverlayClasses,
 } from "../../../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../../../shared/lib/image";
@@ -96,14 +97,21 @@ const HomepageVisualPreview = ({
   onBottomFieldChange,
   onFeatureFieldChange,
 }) => {
-  const heroBanner = draftContent?.heroBanner || defaultHomeContent.heroBanner;
-  const bottomBanner = draftContent?.bottomBanner || defaultHomeContent.bottomBanner;
+  const responsiveContent = getHomepageBreakpointContent(
+    draftContent || defaultHomeContent,
+    viewportMode
+  );
+  const heroBanner = responsiveContent?.heroBanner || defaultHomeContent.heroBanner;
+  const bottomBanner =
+    responsiveContent?.bottomBanner || defaultHomeContent.bottomBanner;
   const features = Array.isArray(draftContent?.features) ? draftContent.features : [];
 
   const isMobile = viewportMode === "mobile";
   const isTablet = viewportMode === "tablet";
   const isWeb = viewportMode === "web";
   const isAtLeastTablet = isWeb || isTablet;
+  const bottomIsCentered = bottomBanner.position === "center";
+  const bottomIsRightAligned = bottomBanner.position.includes("right");
 
   return (
     <div className="space-y-10">
@@ -297,12 +305,22 @@ const HomepageVisualPreview = ({
                   bottomBanner.position
                 )}`}
               >
-                <div className="w-full">
+                <div
+                  className={`flex w-full ${
+                    // Match the live BottomBanner h1 alignment: the editable
+                    // heading sits on the same edge as the feature icon stack.
+                    bottomIsCentered
+                      ? "justify-center"
+                      : bottomIsRightAligned
+                        ? "justify-end"
+                        : "justify-start"
+                  }`}
+                >
                   <InlineEditableField
                     value={bottomBanner.title}
                     onChange={(nextValue) => onBottomFieldChange("title", nextValue)}
                     placeholder="Bottom banner title"
-                    className={`${
+                    className={`w-full max-w-[24rem] px-0 py-0 ${
                       isAtLeastTablet ? "text-3xl" : "text-2xl"
                     } font-semibold text-primary ${getHomepageBlockClasses(
                       bottomBanner.position
@@ -312,17 +330,21 @@ const HomepageVisualPreview = ({
                 </div>
 
                 {features.map((feature, index) => {
-                  const isCentered = bottomBanner.position === "center";
-                  const isRightAligned = bottomBanner.position.includes("right");
+                  const isCentered = bottomIsCentered;
+                  const isRightAligned = bottomIsRightAligned;
                   return (
                     <div
                       key={`preview-feature-${index}`}
-                      className={`mt-3 flex transition-all duration-300 hover:scale-105 ${
+                      className={`mt-3 flex w-full max-w-[24rem] transition-all duration-300 hover:scale-105 ${
                         isCentered
                           ? "flex-col items-center text-center"
-                          : `flex-row items-center gap-4 ${getHomepageBlockClasses(
-                              bottomBanner.position
-                            )}`
+                          : `items-center gap-4 ${
+                              // Match storefront alignment: right-positioned
+                              // stacks keep icons on the heading's text edge.
+                              isRightAligned
+                                ? "flex-row-reverse justify-start"
+                                : "flex-row justify-start"
+                            }`
                       }`}
                     >
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center">
@@ -337,7 +359,9 @@ const HomepageVisualPreview = ({
                       </div>
                       <div
                         className={`min-w-0 ${
-                          isCentered ? "mt-3 max-w-xs" : "flex-1"
+                          // Fixed text column width keeps stacked rows aligned
+                          // without reintroducing the large icon/text gap.
+                          isCentered ? "mt-3 max-w-xs" : "w-full max-w-xs"
                         }`}
                       >
                         <InlineEditableField
@@ -346,7 +370,7 @@ const HomepageVisualPreview = ({
                             onFeatureFieldChange(index, "title", nextValue)
                           }
                           placeholder={`Feature ${index + 1} title`}
-                          className={`w-full font-bold text-gray-800 ${
+                          className={`w-full px-0 py-0 font-bold text-gray-800 ${
                             isCentered || isRightAligned
                               ? isCentered
                                 ? "text-center"
@@ -362,7 +386,7 @@ const HomepageVisualPreview = ({
                           }
                           placeholder="Feature description"
                           multiline
-                          className={`mt-1 w-full text-xs text-gray-500/80 sm:text-sm ${
+                          className={`mt-1 w-full px-0 py-0 text-xs text-gray-500/80 sm:text-sm ${
                             isCentered || isRightAligned
                               ? isCentered
                                 ? "text-center"

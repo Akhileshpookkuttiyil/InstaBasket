@@ -6,6 +6,8 @@ export const HOMEPAGE_TEXT_POSITION_OPTIONS = [
   { value: "bottom-right", label: "Bottom right" },
 ];
 
+export const HOMEPAGE_BREAKPOINTS = ["mobile", "tablet", "desktop"];
+
 const overlayPositionClasses = {
   "top-left": "items-start justify-start text-left",
   "center-left": "items-start justify-center text-left",
@@ -27,3 +29,51 @@ export const getHomepageOverlayClasses = (position = "center") =>
 
 export const getHomepageBlockClasses = (position = "center") =>
   blockAlignmentClasses[position] || blockAlignmentClasses.center;
+
+export const getHomepageBreakpointKey = (mode = "desktop") => {
+  if (mode === "web") return "desktop";
+  return HOMEPAGE_BREAKPOINTS.includes(mode) ? mode : "desktop";
+};
+
+const compactObject = (value = {}) =>
+  Object.fromEntries(
+    Object.entries(value || {}).filter(([, entryValue]) => entryValue != null)
+  );
+
+const mergeBannerContent = (base = {}, override = {}) => {
+  const compactOverride = compactObject(override);
+
+  return {
+    ...base,
+    ...compactOverride,
+    // Breakpoint overrides are for layout/copy. Keep root image assets unless
+    // a valid breakpoint image object/string is intentionally provided.
+    desktopImage: compactOverride.desktopImage || base?.desktopImage,
+    mobileImage: compactOverride.mobileImage || base?.mobileImage,
+    cta: {
+      ...(base?.cta || {}),
+      ...(compactOverride?.cta || {}),
+    },
+    secondaryCta: {
+      ...(base?.secondaryCta || {}),
+      ...(compactOverride?.secondaryCta || {}),
+    },
+  };
+};
+
+export const getHomepageBreakpointContent = (content = {}, mode = "desktop") => {
+  const breakpoint = getHomepageBreakpointKey(mode);
+  const breakpointContent = content?.[breakpoint] || {};
+
+  return {
+    ...content,
+    heroBanner: mergeBannerContent(
+      content?.heroBanner,
+      breakpointContent?.heroBanner
+    ),
+    bottomBanner: mergeBannerContent(
+      content?.bottomBanner,
+      breakpointContent?.bottomBanner
+    ),
+  };
+};

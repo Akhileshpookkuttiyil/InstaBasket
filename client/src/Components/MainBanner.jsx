@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import styles from "./MainBanner.module.css";
 import { assets } from "../assets/assets";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,17 +6,37 @@ import useContentStore from "../store/useContentStore";
 import { defaultHomeContent } from "../shared/content/defaultContent";
 import {
   getHomepageBlockClasses,
+  getHomepageBreakpointContent,
   getHomepageOverlayClasses,
 } from "../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
+const getCurrentBreakpoint = () => {
+  if (typeof window === "undefined") return "desktop";
+  if (window.innerWidth < 768) return "mobile";
+  if (window.innerWidth < 1024) return "tablet";
+  return "desktop";
+};
+
 const MainBanner = memo(() => {
   const navigate = useNavigate();
   const { homeContent, homeContentLoading } = useContentStore();
-  const heroBanner = homeContent?.heroBanner || defaultHomeContent.heroBanner;
+  const [breakpoint, setBreakpoint] = useState(getCurrentBreakpoint);
+  const responsiveContent = getHomepageBreakpointContent(
+    homeContent || defaultHomeContent,
+    breakpoint
+  );
+  const heroBanner = responsiveContent?.heroBanner || defaultHomeContent.heroBanner;
   const desktopBanner = getImageUrl(heroBanner?.desktopImage, "marketing");
   const mobileBanner = getImageUrl(heroBanner?.mobileImage, "marketing");
   const heroPosition = heroBanner?.position || defaultHomeContent.heroBanner.position;
+
+  useEffect(() => {
+    const handleResize = () => setBreakpoint(getCurrentBreakpoint());
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (homeContentLoading || homeContent === null) {
     return (

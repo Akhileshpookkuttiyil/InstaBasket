@@ -20,6 +20,25 @@ const positionSchema = z.enum([
   "bottom-right",
 ]);
 
+const responsiveHeroBannerSchema = z.object({
+  title: z.string().trim().min(3).max(160).optional(),
+  subtitle: z.string().trim().min(3).max(280).optional(),
+  position: positionSchema.optional(),
+  cta: linkSchema.optional(),
+  secondaryCta: linkSchema.optional(),
+}).optional();
+
+const responsiveBottomBannerSchema = z.object({
+  title: z.string().trim().min(3).max(160).optional(),
+  position: positionSchema.optional(),
+  text: z.string().trim().min(3).max(400).optional(),
+}).optional();
+
+const breakpointContentSchema = z.object({
+  heroBanner: responsiveHeroBannerSchema,
+  bottomBanner: responsiveBottomBannerSchema,
+}).optional();
+
 export const categoryPayloadSchema = z.object({
   name: z.string().trim().min(2).max(80),
   slug: z.string().trim().min(2).max(120).optional(),
@@ -66,6 +85,11 @@ export const siteContentPayloadSchema = z.object({
   illustrations: z.object({
     address: imageSchema.optional(),
   }).optional(),
+  // Breakpoint overrides are optional so older admin payloads and existing DB
+  // documents continue to validate as desktop-only homepage content.
+  mobile: breakpointContentSchema,
+  tablet: breakpointContentSchema,
+  desktop: breakpointContentSchema,
   features: z.array(
     z.object({
       icon: imageSchema.optional(),
