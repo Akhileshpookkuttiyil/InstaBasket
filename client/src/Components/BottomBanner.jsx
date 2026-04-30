@@ -1,20 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import useContentStore from "../store/useContentStore";
 import { defaultHomeContent } from "../shared/content/defaultContent";
 import {
   getHomepageBlockClasses,
+  getHomepageBreakpointContent,
   getHomepageOverlayClasses,
 } from "../shared/content/homepageLayout";
 import { getImageFallback, getImageUrl } from "../shared/lib/image";
 
+const getCurrentBreakpoint = () => {
+  if (typeof window === "undefined") return "desktop";
+  if (window.innerWidth < 768) return "mobile";
+  if (window.innerWidth < 1024) return "tablet";
+  return "desktop";
+};
+
 const BottomBanner = () => {
   const { homeContent, homeContentLoading } = useContentStore();
-  const bottomBanner = homeContent?.bottomBanner || defaultHomeContent.bottomBanner;
+  const [breakpoint, setBreakpoint] = useState(getCurrentBreakpoint);
+  const responsiveContent = getHomepageBreakpointContent(
+    homeContent || defaultHomeContent,
+    breakpoint
+  );
+  const bottomBanner =
+    responsiveContent?.bottomBanner || defaultHomeContent.bottomBanner;
   const bottomPosition =
     bottomBanner?.position || defaultHomeContent.bottomBanner.position;
   const features = homeContent?.features?.length
     ? homeContent.features
     : defaultHomeContent.features;
+
+  useEffect(() => {
+    const handleResize = () => setBreakpoint(getCurrentBreakpoint());
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (homeContentLoading || homeContent === null) {
     return (
@@ -40,11 +61,11 @@ const BottomBanner = () => {
   }
 
   return (
-    <div className="relative mt-24">
+    <div className="relative mt-24 w-full max-w-full overflow-hidden">
       <img
         src={getImageUrl(bottomBanner?.desktopImage, "marketing")}
         alt="bottom banner"
-        className="w-full hidden md:block"
+        className="hidden min-h-[360px] w-full max-w-full object-cover md:block"
         onError={(event) => {
           event.currentTarget.src = getImageFallback("marketing");
         }}
@@ -52,24 +73,24 @@ const BottomBanner = () => {
       <img
         src={getImageUrl(bottomBanner?.mobileImage, "marketing")}
         alt="bottom banner"
-        className="w-full md:hidden"
+        className="block min-h-[420px] w-full max-w-full object-cover md:hidden"
         onError={(event) => {
           event.currentTarget.src = getImageFallback("marketing");
         }}
       />
 
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <div
-          className={`mx-auto flex h-full max-w-7xl px-6 py-8 md:px-10 lg:px-16 ${getHomepageOverlayClasses(
+          className={`mx-auto flex h-full max-w-7xl px-4 py-6 sm:px-6 md:px-10 lg:px-16 ${getHomepageOverlayClasses(
             bottomPosition
           )}`}
         >
           <div
-            className={`flex max-w-md flex-col ${getHomepageBlockClasses(
+            className={`flex w-full max-w-md min-w-0 flex-col ${getHomepageBlockClasses(
               bottomPosition
             )}`}
           >
-            <h1 className="text-2xl font-semibold text-primary md:text-3xl">
+            <h1 className="w-full max-w-[24rem] text-2xl font-semibold text-primary md:text-3xl">
               {bottomBanner?.title || defaultHomeContent.bottomBanner.title}
             </h1>
             {features.map((feature, index) => {
@@ -78,10 +99,16 @@ const BottomBanner = () => {
               return (
                 <div
                   key={index}
-                  className={`mt-6 flex w-full transition-all duration-300 hover:scale-105 ${
+                  className={`mt-4 flex w-full max-w-[24rem] min-w-0 transition-all duration-300 hover:scale-105 md:mt-6 ${
                     isCentered
                       ? "flex-col items-center text-center"
-                      : "flex-row items-center gap-4"
+                      : `items-center gap-4 ${
+                          // Right-aligned banner positions keep the icons on
+                          // the right edge so the heading text ends there too.
+                          isRightAligned
+                            ? "flex-row-reverse justify-start"
+                            : "flex-row justify-start"
+                        }`
                   }`}
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center">
@@ -96,13 +123,15 @@ const BottomBanner = () => {
                   </div>
                   <div
                     className={`${
-                      isCentered ? "mt-3 max-w-xs" : "flex-1 min-w-0"
+                      // Fixed text column width keeps icon/text groups aligned
+                      // across rows without adding extra desktop/tablet space.
+                      isCentered ? "mt-3 max-w-xs" : "min-w-0 w-full max-w-xs"
                     } ${isRightAligned ? "text-right" : "text-left"}`}
                   >
-                    <h3 className="text-lg font-bold md:text-xl">
+                    <h3 className="break-words text-lg font-bold md:text-xl">
                       {feature.title}
                     </h3>
-                    <p className="mt-1 text-xs text-gray-500/80 sm:text-sm">
+                    <p className="mt-1 break-words text-xs text-gray-500/80 sm:text-sm">
                       {feature.description}
                     </p>
                   </div>
