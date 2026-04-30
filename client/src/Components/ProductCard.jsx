@@ -34,19 +34,22 @@ const ProductCard = ({ product }) => {
         );
         scrollTo({ top: 0, behavior: "smooth" });
       }}
-      className="group relative w-full mx-auto overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+      className="group relative mx-auto flex h-full w-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
     >
-      <div className="relative h-44 sm:h-48 bg-gradient-to-b from-gray-50 to-white p-3 flex items-center justify-center">
-        {discountPercent > 0 && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-gray-900">
-            {discountPercent}% OFF
-          </span>
-        )}
-        {isOutOfStock && (
-          <span className="absolute right-3 top-3 z-10 rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-medium text-white">
-            Out of Stock
-          </span>
-        )}
+      <div className="relative flex h-44 shrink-0 items-center justify-center bg-gradient-to-b from-gray-50 to-white p-3 sm:h-48">
+        {/* Responsive badge stack prevents discount and stock labels from colliding on narrow cards. */}
+        <div className="absolute left-3 right-3 top-3 z-10 flex flex-col items-start gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+          {discountPercent > 0 && (
+            <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-gray-900">
+              {discountPercent}% OFF
+            </span>
+          )}
+          {isOutOfStock && (
+            <span className="rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-medium text-white sm:ml-auto">
+              Out of Stock
+            </span>
+          )}
+        </div>
         <img
           className="relative z-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
           src={getImageUrl(product?.image?.[0], "product")}
@@ -57,17 +60,18 @@ const ProductCard = ({ product }) => {
         />
       </div>
 
-      <div className="space-y-3 p-3.5">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-wide text-gray-500">
+      <div className="flex flex-1 flex-col gap-2.5 p-3 sm:p-3.5">
+        {/* Fixed content bands keep every card the same height across title length and stock states. */}
+        <div className="flex flex-col gap-1">
+          <p className="truncate text-[11px] uppercase tracking-wide text-gray-500">
             {product.category}
           </p>
-          <p className="min-h-[44px] overflow-hidden text-[15px] font-semibold leading-[1.35] text-gray-800">
+          <p className="line-clamp-2 min-h-[40px] overflow-hidden text-[15px] font-semibold leading-[1.35] text-gray-800">
             {product.name}
           </p>
         </div>
 
-        <div className="flex items-center gap-0.5 text-xs text-gray-500">
+        <div className="flex min-w-0 items-center gap-0.5 text-xs text-gray-500">
           {Array(5)
             .fill("")
             .map((_, i) => (
@@ -78,13 +82,13 @@ const ProductCard = ({ product }) => {
                 alt="rating"
               />
             ))}
-          <p className="ml-1">
+          <p className="ml-1 truncate">
             ({rating.toFixed(1)}{ratingCount > 0 ? ` · ${ratingCount}` : ""})
           </p>
         </div>
 
-        <div className="flex items-end justify-between gap-3">
-          <div className="flex flex-col">
+        <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+          <div className="flex min-w-0 flex-col">
             <span className="text-lg font-bold text-gray-900">
               {currency} {offer}
             </span>
@@ -95,10 +99,13 @@ const ProductCard = ({ product }) => {
             )}
           </div>
 
-          <div onClick={(e) => e.stopPropagation()} className="text-primary">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-full justify-start text-primary sm:w-auto sm:justify-end"
+          >
             {!itemQuantity ? (!isOutOfStock ? (
               <button
-                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dull"
+                className="inline-flex min-h-[38px] w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dull sm:w-auto"
                 onClick={() => {
                   addToCart(product._id, user);
                 }}
@@ -112,13 +119,13 @@ const ProductCard = ({ product }) => {
               </button>
             ) : (
               <button
-                className="rounded-md border border-gray-300 bg-gray-100 px-3.5 py-2 text-sm font-medium text-gray-500 cursor-not-allowed"
+                className="min-h-[38px] w-full rounded-md border border-gray-300 bg-gray-100 px-3.5 py-2 text-sm font-medium text-gray-500 cursor-not-allowed sm:w-auto"
                 disabled
               >
                 Out of Stock
               </button>
             )) : (
-              <div className="flex h-[34px] items-center overflow-hidden rounded-md border border-primary/35 bg-primary/10 select-none">
+              <div className="flex h-[34px] w-full items-center justify-between overflow-hidden rounded-md border border-primary/35 bg-primary/10 select-none sm:w-auto sm:justify-start">
                 <button
                   onClick={() => {
                     removeFromCart(product._id, user);
