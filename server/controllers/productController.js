@@ -152,7 +152,7 @@ export const changeStock = asyncHandler(async (req, res) => {
   const { id, inStock } = req.body;
 
   const product = await Product.findById(id).select(
-    "name countInStock inStock"
+    "name category countInStock inStock"
   );
   if (!product) {
     return res.status(404).json({
@@ -177,6 +177,7 @@ export const changeStock = asyncHandler(async (req, res) => {
     notifiedUsers = await notifyAndClearStockSubscribers({
       productId: product._id,
       productName: product.name,
+      productCategory: product.category,
     });
   }
 
@@ -271,6 +272,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
     notifiedUsers = await notifyAndClearStockSubscribers({
       productId: updatedProduct._id,
       productName: updatedProduct.name,
+      productCategory: updatedProduct.category,
     });
   }
 

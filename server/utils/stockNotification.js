@@ -4,6 +4,7 @@ import { createUserNotification } from "./notification.js";
 export const notifyAndClearStockSubscribers = async ({
   productId,
   productName,
+  productCategory,
 }) => {
   const productWithSubscribers = await Product.findOneAndUpdate(
     {
@@ -39,11 +40,13 @@ export const notifyAndClearStockSubscribers = async ({
     subscribers.map((userId) =>
       createUserNotification({
         userId,
-        type: "system",
+        type: "SYSTEM",
         title: "Product back in stock",
         message: `${safeProductName} is available again. You can order it now.`,
         meta: {
           status: "restocked",
+          orderId: productId,
+          category: productCategory,
         },
       })
     )

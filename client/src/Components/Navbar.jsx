@@ -30,25 +30,19 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-  
-  const { 
-    user, 
-    
-    setshowUserLogin, 
+
+  const {
+    user,
+
+    setshowUserLogin,
     logout,
-    loading 
+    loading,
   } = useAuthStore();
-  
-  const { 
-    getCartCount, 
-    setCartItems 
-  } = useCartStore();
-  
-  const { 
-    searchQuery, 
-    setsearchQuery 
-  } = useProductStore();
-  
+
+  const { getCartCount, setCartItems } = useCartStore();
+
+  const { searchQuery, setsearchQuery } = useProductStore();
+
   const navigate = useNavigate();
   const userId = user?._id;
 
@@ -66,35 +60,40 @@ const Navbar = () => {
     }
   };
 
-  const fetchNotifications = useCallback(async (showLoader = false) => {
-    if (!userId) return;
+  const fetchNotifications = useCallback(
+    async (showLoader = false) => {
+      if (!userId) return;
 
-    if (showLoader) {
-      setNotificationsLoading(true);
-    }
-
-    try {
-      const { data } = await apiClient.get("/api/notifications/user?limit=12");
-      if (data.success) {
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error.message);
-    } finally {
       if (showLoader) {
-        setNotificationsLoading(false);
+        setNotificationsLoading(true);
       }
-    }
-  }, [userId]);
+
+      try {
+        const { data } = await apiClient.get(
+          "/api/notifications/user?limit=12",
+        );
+        if (data.success) {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error.message);
+      } finally {
+        if (showLoader) {
+          setNotificationsLoading(false);
+        }
+      }
+    },
+    [userId],
+  );
 
   const markNotificationRead = async (notificationId) => {
     try {
       await apiClient.patch(`/api/notifications/${notificationId}/read`);
       setNotifications((prev) =>
         prev.map((item) =>
-          item._id === notificationId ? { ...item, isRead: true } : item
-        )
+          item._id === notificationId ? { ...item, isRead: true } : item,
+        ),
       );
       setUnreadCount((prev) => Math.max(prev - 1, 0));
     } catch (error) {
@@ -106,7 +105,9 @@ const Navbar = () => {
     try {
       const { data } = await apiClient.patch("/api/notifications/read-all");
       if (data.success) {
-        setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+        setNotifications((prev) =>
+          prev.map((item) => ({ ...item, isRead: true })),
+        );
         setUnreadCount(0);
       }
     } catch (error) {
@@ -116,9 +117,13 @@ const Navbar = () => {
 
   const deleteNotification = async (notificationId) => {
     try {
-      const { data } = await apiClient.delete(`/api/notifications/${notificationId}`);
+      const { data } = await apiClient.delete(
+        `/api/notifications/${notificationId}`,
+      );
       if (data.success) {
-        setNotifications((prev) => prev.filter((item) => item._id !== notificationId));
+        setNotifications((prev) =>
+          prev.filter((item) => item._id !== notificationId),
+        );
         setUnreadCount(Number(data.unreadCount || 0));
       }
     } catch (error) {
@@ -200,7 +205,16 @@ const Navbar = () => {
       await markNotificationRead(item._id);
     }
     setNotificationOpen(false);
-    navigate("/my-orders");
+
+    const type = String(item.type || "").toUpperCase();
+
+    if (type === "SYSTEM" && item.meta?.orderId && item.meta?.category) {
+      navigate(`/products/${item.meta.category}/${item.meta.orderId}`);
+    } else if (item.meta?.orderId) {
+      navigate(`/orders/${item.meta.orderId}`);
+    } else {
+      navigate("/");
+    }
   };
 
   const renderNotificationPanel = ({ mobile = false } = {}) => (
@@ -233,12 +247,17 @@ const Navbar = () => {
 
       <div className={`${mobile ? "max-h-72" : "max-h-80"} overflow-y-auto`}>
         {notificationsLoading ? (
-          <p className="px-4 py-6 text-sm text-gray-500">Loading notifications...</p>
+          <p className="px-4 py-6 text-sm text-gray-500">
+            Loading notifications...
+          </p>
         ) : notifications.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500">No notifications yet.</p>
+          <p className="px-4 py-6 text-sm text-gray-500">
+            No notifications yet.
+          </p>
         ) : (
           notifications.map((item) => {
-            const { Icon, label, iconClass, bgClass, chipClass } = getNotificationTypeMeta(item.type);
+            const { Icon, label, iconClass, bgClass, chipClass } =
+              getNotificationTypeMeta(item.type);
             return (
               <div
                 key={item._id}
@@ -258,9 +277,14 @@ const Navbar = () => {
                     className="flex-1 text-left hover:bg-gray-50 rounded-md px-1 py-0.5"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-gray-800">{item.title}</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {item.title}
+                      </p>
                       {!item.isRead && (
-                        <Circle size={8} className="fill-primary text-primary mt-1.5 shrink-0" />
+                        <Circle
+                          size={8}
+                          className="fill-primary text-primary mt-1.5 shrink-0"
+                        />
                       )}
                     </div>
                     <p className="text-xs text-gray-600 mt-1">{item.message}</p>
@@ -467,9 +491,7 @@ const Navbar = () => {
               )}
             </button>
 
-            {notificationOpen && (
-              renderNotificationPanel()
-            )}
+            {notificationOpen && renderNotificationPanel()}
           </div>
         )}
 

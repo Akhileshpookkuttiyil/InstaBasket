@@ -32,6 +32,7 @@ const notificationSchema = new mongoose.Schema(
       },
       status: String,
       amount: Number,
+      category: String,
     },
     isRead: {
       type: Boolean,
