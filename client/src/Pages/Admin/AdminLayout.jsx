@@ -1,6 +1,14 @@
 import React from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ImagePlus, LayoutDashboard, Layers3, LogOut } from "lucide-react";
+import {
+  ImagePlus,
+  LayoutDashboard,
+  Layers3,
+  LogOut,
+  Package,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
 import { assets } from "../../assets/assets";
 import useAuthStore from "../../store/useAuthStore";
 import { AdminShell } from "./components/AdminSurface";
@@ -11,6 +19,21 @@ const links = [
     to: "/admin",
     end: true,
     icon: LayoutDashboard,
+  },
+  {
+    label: "Orders",
+    to: "/admin/orders",
+    icon: ShoppingCart,
+  },
+  {
+    label: "Products",
+    to: "/admin/products",
+    icon: Package,
+  },
+  {
+    label: "Customers",
+    to: "/admin/customers",
+    icon: Users,
   },
   {
     label: "Categories",
@@ -29,7 +52,7 @@ const AdminLayout = () => {
   const { logout, user } = useAuthStore();
 
   const sidebar = (
-    <div className="flex h-full flex-col px-4 py-5">
+    <div className="flex h-full min-w-0 flex-col px-4 py-5">
       <div className="px-3 pb-4">
         <Link to="/" className="inline-flex">
           <img src={assets.logo} alt="InstaBasket" className="w-34 md:w-38" />
@@ -63,12 +86,12 @@ const AdminLayout = () => {
   );
 
   const header = (
-    <div className="flex items-center justify-between px-4 py-3 md:px-6">
-      <div>
+    <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-6">
+      <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Content management
         </p>
-        <h2 className="mt-1 text-xl font-semibold text-gray-800">
+        <h2 className="mt-1 truncate text-xl font-semibold text-gray-800">
           {user?.name || "Admin"} workspace
         </h2>
       </div>

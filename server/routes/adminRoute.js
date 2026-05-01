@@ -12,17 +12,57 @@ import {
   upsertHomeSiteContent,
   updateCategory,
 } from "../controllers/contentController.js";
+import {
+  getSellerSummary,
+  getSellerUsers,
+  updateUserStatus,
+} from "../controllers/sellerController.js";
+import { getAllOrders, updateOrderStatus } from "../controllers/orderController.js";
+import {
+  changeStock,
+  getAllProducts,
+  updateProduct,
+} from "../controllers/productController.js";
+import {
+  getAdminDashboardAnalytics,
+  initiateManualRefund,
+  updatePaymentStatusManual,
+} from "../controllers/adminController.js";
+import {
+  changeStockSchema,
+  updateProductSchema,
+} from "../schemas/productSchema.js";
+import { sellerOrderFiltersSchema, updateOrderStatusSchema } from "../schemas/orderSchema.js";
 
 const adminRouter = express.Router();
 
 adminRouter.post("/login", validate(loginSchema), loginAdmin);
 adminRouter.get("/logout", authAdmin, logoutUser);
 adminRouter.get("/auth", authAdmin, getAdminAuthStatus);
+adminRouter.get("/summary", authAdmin, getSellerSummary);
+adminRouter.get("/dashboard-analytics", authAdmin, getAdminDashboardAnalytics);
 
 adminRouter.get("/categories", authAdmin, listAdminCategories);
 adminRouter.post("/categories", authAdmin, upload.single("image"), createCategory);
 adminRouter.put("/categories/:id", authAdmin, upload.single("image"), updateCategory);
 adminRouter.delete("/categories/:id", authAdmin, deleteCategory);
+
+adminRouter.get("/users", authAdmin, getSellerUsers);
+adminRouter.patch("/users/:id/status", authAdmin, updateUserStatus);
+
+adminRouter.get("/orders", authAdmin, validate(sellerOrderFiltersSchema), getAllOrders);
+adminRouter.patch(
+  "/orders/:id/status",
+  authAdmin,
+  validate(updateOrderStatusSchema),
+  updateOrderStatus
+);
+adminRouter.patch("/orders/:id/payment", authAdmin, updatePaymentStatusManual);
+adminRouter.post("/orders/:id/refund", authAdmin, initiateManualRefund);
+
+adminRouter.get("/products", authAdmin, getAllProducts);
+adminRouter.post("/products/stock", authAdmin, validate(changeStockSchema), changeStock);
+adminRouter.patch("/products/:id", authAdmin, validate(updateProductSchema), updateProduct);
 
 adminRouter.put(
   "/site-content/home",

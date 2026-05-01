@@ -1,15 +1,21 @@
 import React from "react";
 
 export const AdminShell = ({ sidebar, header, children }) => (
-  <div className="h-screen overflow-hidden bg-gray-50/60 text-gray-800">
-    <div className="mx-auto grid h-full max-w-[1440px] md:grid-cols-[248px_1fr]">
-      <aside className="h-full overflow-y-auto border-r border-gray-200 bg-white">{sidebar}</aside>
-      <div className="flex min-w-0 min-h-0 flex-col">
+  // h-screen + overflow-hidden on root clamps the shell to the viewport.
+  // Only <main> scrolls; the sidebar and header stay fixed in place.
+  <div className="h-screen w-full overflow-hidden bg-gray-50/60 text-gray-800">
+    <div className="mx-auto grid h-full w-full max-w-[1440px] grid-cols-1 md:grid-cols-[248px_minmax(0,1fr)]">
+      <aside className="min-w-0 border-b border-gray-200 bg-white md:h-full md:overflow-y-auto md:border-b-0 md:border-r">
+        {sidebar}
+      </aside>
+      <div className="flex h-full min-w-0 max-w-full flex-col overflow-hidden">
         <header className="shrink-0 border-b border-gray-200 bg-white">
           {header}
         </header>
-        <main className="h-[calc(100vh-73px)] overflow-y-auto p-4 md:h-[calc(100vh-69px)] md:p-6">
-          {children}
+        <main className="w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto flex w-full min-w-0 max-w-full flex-col gap-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>
@@ -17,7 +23,7 @@ export const AdminShell = ({ sidebar, header, children }) => (
 );
 
 export const Panel = ({ title, description, action, children, className = "" }) => (
-  <section className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}>
+  <section className={`min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}>
     {(title || description || action) && (
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-4 py-4 md:px-5">
         <div className="min-w-0 flex-1">
@@ -28,15 +34,15 @@ export const Panel = ({ title, description, action, children, className = "" }) 
             </p>
           ) : null}
         </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+        {action ? <div className="w-full min-w-0 sm:w-auto sm:shrink-0">{action}</div> : null}
       </div>
     )}
-    <div className="px-4 py-4 md:px-5">{children}</div>
+    <div className="min-w-0 max-w-full px-4 py-4 md:px-5">{children}</div>
   </section>
 );
 
 export const StatCard = ({ label, value, hint }) => (
-  <div className="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
+  <div className="min-w-0 rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm">
     <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
     <p className="mt-2.5 text-2xl font-semibold text-gray-800">{value}</p>
     {hint ? <p className="mt-2 text-sm text-gray-500">{hint}</p> : null}

@@ -29,6 +29,9 @@ import AdminLogin from "./Pages/Admin/AdminLogin";
 import AdminOverview from "./Pages/Admin/AdminOverview";
 import CategoryManagement from "./Pages/Admin/CategoryManagement";
 import HomepageManagement from "./Pages/Admin/HomepageManagement";
+import AdminOrders from "./Pages/Admin/AdminOrders";
+import AdminProducts from "./Pages/Admin/AdminProducts";
+import AdminCustomers from "./Pages/Admin/AdminCustomers";
 import AdminRoute from "./features/auth/components/AdminRoute";
 import useAuthStore from "./features/auth/store/useAuthStore";
 import useProductStore from "./features/product/store/useProductStore";
@@ -98,6 +101,9 @@ const App = () => {
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverview />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="customers" element={<AdminCustomers />} />
               <Route path="categories" element={<CategoryManagement />} />
               <Route path="homepage" element={<HomepageManagement />} />
             </Route>
